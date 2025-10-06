@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric AI - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        select, textarea, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .success {
+            background: #efe;
+            border: 2px solid #cfc;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success.active {
+            display: block;
+        }
+
+        .quick-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .example-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .example-title {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .example-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Fabric AI Web Interface</h1>
+            <p>Interact with your Fabric patterns through a beautiful web interface</p>
+        </div>
+
+        <div class="main-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="patternCount">Loading...</div>
+                    <div class="stat-label">Available Patterns</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">GLM-4.6</div>
+                    <div class="stat-label">AI Model</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Strategies</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Pattern Selection</h2>
+                <div class="form-group">
+                    <label for="pattern">Choose a Pattern:</label>
+                    <select id="pattern" onchange="updateRecommendedStrategy()">
+                        <option value="">Loading patterns...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="strategy">
+                        Reasoning Strategy:
+                        <span id="strategyIndicator" style="font-size: 0.85em; color: #667eea; font-weight: normal;"></span>
+                    </label>
+                    <select id="strategy">
+                        <option value="">Auto (Default)</option>
+                        <option value="standard">⚡ Standard - Direct answers (fastest)</option>
+                        <option value="cot">🧠 Chain-of-Thought - Step-by-step reasoning</option>
+                        <option value="cod">✏️ Chain-of-Draft - Concise reasoning</option>
+                        <option value="ltm">📚 Least-to-Most - Progressive difficulty</option>
+                        <option value="tot">🌳 Tree-of-Thought - Multiple approaches</option>
+                        <option value="aot">⚛️ Atom-of-Thought - Atomic decomposition</option>
+                        <option value="reflexion">🔍 Reflexion - Self-critique</option>
+                        <option value="self-refine">✨ Self-Refine - Iterative improvement</option>
+                        <option value="self-consistent">✅ Self-Consistent - Verification (slowest)</option>
+                    </select>
+                    <div style="margin-top: 8px; font-size: 0.85em; color: #666;" id="strategyDescription">
+                        Strategy will be automatically selected based on pattern type
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Quick Examples</h2>
+                <div class="quick-examples">
+                    <div class="example-card" onclick="loadExample('summarize', 'Artificial Intelligence is transforming industries worldwide. Machine learning algorithms can now process vast amounts of data and identify patterns that humans might miss. Companies are using AI for everything from customer service chatbots to medical diagnosis.')">
+                        <div class="example-title">📝 Summarize</div>
+                        <div class="example-desc">Create a summary of text</div>
+                    </div>
+                    <div class="example-card" onclick="loadExample('extract_wisdom', 'The key to success is not just working hard, but working smart. Focus on what truly matters, eliminate distractions, and continuously learn from your experiences. Embrace failure as a teacher, and remember that persistence often matters more than talent.')">
+                        <div class="example-title">💡 Extract Wisdom</div>
+                        <div class="example-desc">Pull key insights from content</div>
+                    </div>
+                    <div class="example-card" onclick="loadExample('improve_writing', 'The product is good and works nice. It has many features and is not expensive. I think people will like it alot.')">
+                        <div class="example-title">✍️ Improve Writing</div>
+                        <div class="example-desc">Enhance text quality</div>
+                    </div>
+                    <div class="example-card" onclick="loadExample('analyze_claims', 'Studies show that drinking 8 glasses of water per day is essential for health. This has been proven by science and is universally accepted by all doctors.')">
+                        <div class="example-title">🔍 Analyze Claims</div>
+                        <div class="example-desc">Fact-check statements</div>
+                    </div>
+                    <div class="example-card" onclick="loadYouTubeExample('extract_wisdom', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')">
+                        <div class="example-title">🎥 YouTube Wisdom</div>
+                        <div class="example-desc">Extract insights from video</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Input</h2>
+
+                <!-- Toggle between text, YouTube, and Upload -->
+                <div class="form-group">
+                    <label>Input Type:</label>
+                    <div class="button-group">
+                        <button class="btn-secondary" id="btnText" onclick="switchInputType('text')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            📝 Text
+                        </button>
+                        <button class="btn-secondary" id="btnYoutube" onclick="switchInputType('youtube')">
+                            🎥 YouTube URL
+                        </button>
+                        <button class="btn-secondary" id="btnUpload" onclick="switchInputType('upload')">
+                            📄 Upload Document
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Text input (default) -->
+                <div class="form-group" id="textInputGroup">
+                    <label for="input">Enter your text:</label>
+                    <textarea id="input" placeholder="Paste or type your text here..."></textarea>
+                </div>
+
+                <!-- YouTube input (hidden by default) -->
+                <div class="form-group" id="youtubeInputGroup" style="display: none;">
+                    <label for="youtubeUrl">YouTube URL:</label>
+                    <input type="text" id="youtubeUrl" placeholder="https://youtube.com/watch?v=..." />
+                    <div style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="includeTimestamps" style="width: auto; margin-right: 8px;">
+                            Include timestamps in transcript
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Upload input (hidden by default) -->
+                <div class="form-group" id="uploadInputGroup" style="display: none;">
+                    <label for="fileUpload">Upload Document:</label>
+                    <input type="file" id="fileUpload" accept=".txt,.md,.pdf,.doc,.docx,.html,.json,.csv" style="padding: 10px; border: 2px dashed #667eea; border-radius: 8px; background: #f8f9fa; cursor: pointer;" onchange="handleFileUpload(event)" />
+                    <div id="uploadStatus" style="margin-top: 10px; color: #667eea; font-size: 0.9em;"></div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <strong>Supported formats:</strong> TXT, MD, PDF, DOC, DOCX, HTML, JSON, CSV
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="button-group">
+                    <button class="btn-primary" onclick="processText()">🚀 Process with Fabric</button>
+                    <button class="btn-secondary" onclick="clearAll()">🔄 Clear All</button>
+                    <button class="btn-secondary" onclick="copyOutput()">📋 Copy Output</button>
+                    <button class="btn-secondary" id="chainBtn" onclick="showChainDialog()" style="display: none;">🔗 Chain Pattern</button>
+                </div>
+            </div>
+
+            <!-- Chain Pattern Dialog -->
+            <div id="chainDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 1000; max-width: 500px; width: 90%;">
+                <h3 style="margin-bottom: 20px; color: #667eea;">🔗 Chain Another Pattern</h3>
+                <p style="margin-bottom: 20px; color: #666;">Process the output with another pattern:</p>
+                <div class="form-group">
+                    <label for="chainPattern">Select Pattern:</label>
+                    <select id="chainPattern">
+                        <option value="">Select a pattern...</option>
+                    </select>
+                </div>
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="executeChain()">▶️ Run Chain</button>
+                    <button class="btn-secondary" onclick="closeChainDialog()">✖️ Cancel</button>
+                </div>
+            </div>
+            <div id="chainOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeChainDialog()"></div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px;">Processing with AI...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+            <div class="success" id="success"></div>
+
+            <div class="output-section">
+                <h2 class="section-title">Output</h2>
+                <div class="output" id="output">Your results will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+
+        // Strategy mapping based on pattern names
+        const strategyMap = {
+            // Analysis patterns benefit from step-by-step or self-critique
+            'analyze': 'cot',
+            'review': 'reflexion',
+            'check': 'self-consistent',
+            'compare': 'self-consistent',
+            'rate': 'reflexion',
+
+            // Creation patterns benefit from exploring multiple approaches
+            'create': 'tot',
+            'write': 'tot',
+            'generate': 'tot',
+            'design': 'aot',
+            'build': 'aot',
+
+            // Extraction patterns can use concise approaches
+            'extract': 'cod',
+            'get': 'standard',
+            'find': 'standard',
+            'pull': 'cod',
+
+            // Summary patterns benefit from concise reasoning
+            'summarize': 'cod',
+            'summary': 'cod',
+            'tldr': 'standard',
+
+            // Improvement patterns benefit from iterative refinement
+            'improve': 'self-refine',
+            'enhance': 'self-refine',
+            'refine': 'self-refine',
+            'optimize': 'reflexion',
+            'fix': 'reflexion',
+
+            // Learning/teaching patterns benefit from progressive approach
+            'explain': 'ltm',
+            'teach': 'ltm',
+            'learn': 'ltm',
+            'understand': 'cot',
+
+            // Label patterns (for categorization/tagging)
+            'label': 'standard'
+        };
+
+        // Strategy descriptions for user guidance
+        const strategyDescriptions = {
+            '': 'Strategy will be automatically selected based on pattern type',
+            'standard': 'Fast, direct answers without explanation - best for quick facts',
+            'cot': 'Shows step-by-step reasoning - great for understanding the thought process',
+            'cod': 'Compact reasoning with brief steps - efficient yet transparent',
+            'ltm': 'Breaks down problems from simple to complex - ideal for learning',
+            'tot': 'Explores multiple creative approaches - perfect for design and strategy',
+            'aot': 'Decomposes into independent atomic parts - excellent for system design',
+            'reflexion': 'Self-critique and refinement - ensures high-quality critical analysis',
+            'self-refine': 'Iterative improvement cycles - polishes output to perfection',
+            'self-consistent': 'Multiple verification paths for accuracy - slowest but most reliable'
+        };
+
+        // Get recommended strategy for a pattern
+        function getRecommendedStrategy(patternName) {
+            if (!patternName) return null;
+
+            const lowerPattern = patternName.toLowerCase();
+
+            // Check each strategy mapping key
+            for (const [keyword, strategy] of Object.entries(strategyMap)) {
+                if (lowerPattern.includes(keyword)) {
+                    return strategy;
+                }
+            }
+
+            // Default to auto (no strategy specified)
+            return null;
+        }
+
+        // Update recommended strategy when pattern changes
+        function updateRecommendedStrategy() {
+            const patternSelect = document.getElementById('pattern');
+            const strategySelect = document.getElementById('strategy');
+            const indicator = document.getElementById('strategyIndicator');
+            const description = document.getElementById('strategyDescription');
+
+            const selectedPattern = patternSelect.value;
+
+            if (!selectedPattern) {
+                indicator.textContent = '';
+                description.textContent = 'Strategy will be automatically selected based on pattern type';
+                return;
+            }
+
+            const recommended = getRecommendedStrategy(selectedPattern);
+
+            // Always default to Auto for now (strategies can cause timeouts)
+            strategySelect.value = '';
+
+            if (recommended) {
+                // Show recommendation but don't auto-select
+                indicator.innerHTML = `💡 <em>Recommended: ${getStrategyName(recommended)} (optional)</em>`;
+                description.textContent = `Auto mode is fastest. You can optionally select ${getStrategyName(recommended)} for this pattern type.`;
+            } else {
+                // No specific recommendation, use auto
+                indicator.textContent = '';
+                description.textContent = 'Auto mode selected - fastest processing';
+            }
+        }
+
+        // Get human-readable strategy name
+        function getStrategyName(strategyValue) {
+            const option = document.querySelector(`#strategy option[value="${strategyValue}"]`);
+            return option ? option.textContent.split(' - ')[0].replace(/^[⚡🧠✏️📚🌳⚛️🔍✨✅]\s*/, '') : strategyValue;
+        }
+
+        // Update description when user manually changes strategy
+        document.addEventListener('DOMContentLoaded', function() {
+            const strategySelect = document.getElementById('strategy');
+            const indicator = document.getElementById('strategyIndicator');
+            const description = document.getElementById('strategyDescription');
+
+            strategySelect.addEventListener('change', function() {
+                const selected = this.value;
+                description.textContent = strategyDescriptions[selected] || 'Custom strategy selected';
+
+                // Update indicator if user overrides recommendation
+                const pattern = document.getElementById('pattern').value;
+                const recommended = getRecommendedStrategy(pattern);
+
+                if (selected === recommended && recommended) {
+                    indicator.innerHTML = `💡 <em>Recommended: ${getStrategyName(selected)}</em>`;
+                } else if (selected && selected !== recommended) {
+                    indicator.innerHTML = `🔧 <em>Manual override</em>`;
+                } else {
+                    indicator.textContent = '';
+                }
+            });
+        });
+
+        // Load patterns on page load
+        async function loadPatterns() {
+            try {
+                const response = await fetch(`${API_BASE}/patterns/details`);
+                const patterns = await response.json();
+
+                const select = document.getElementById('pattern');
+                select.innerHTML = '<option value="">Select a pattern...</option>';
+
+                const chainSelect = document.getElementById('chainPattern');
+                chainSelect.innerHTML = '<option value="">Select a pattern...</option>';
+
+                patterns.forEach(pattern => {
+                    const option = document.createElement('option');
+                    option.value = pattern.name;
+
+                    // Format: "pattern_name - Description here"
+                    if (pattern.description) {
+                        option.textContent = `${pattern.name} - ${pattern.description}`;
+                    } else {
+                        option.textContent = pattern.name;
+                    }
+
+                    select.appendChild(option);
+
+                    // Chain selector gets same formatting
+                    const chainOption = document.createElement('option');
+                    chainOption.value = pattern.name;
+                    if (pattern.description) {
+                        chainOption.textContent = `${pattern.name} - ${pattern.description}`;
+                    } else {
+                        chainOption.textContent = pattern.name;
+                    }
+                    chainSelect.appendChild(chainOption);
+                });
+
+                document.getElementById('patternCount').textContent = patterns.length;
+            } catch (error) {
+                showError('Failed to load patterns. Make sure the Fabric server is running on port 3000.');
+                document.getElementById('patternCount').textContent = 'Error';
+            }
+        }
+
+        // Load example
+        function loadExample(pattern, text) {
+            switchInputType('text');
+            document.getElementById('pattern').value = pattern;
+            document.getElementById('input').value = text;
+            hideMessages();
+        }
+
+        // Load YouTube example
+        function loadYouTubeExample(pattern, url) {
+            switchInputType('youtube');
+            document.getElementById('pattern').value = pattern;
+            document.getElementById('youtubeUrl').value = url;
+            hideMessages();
+        }
+
+        // Track current input type and uploaded file content
+        let currentInputType = 'text';
+        let uploadedFileContent = '';
+
+        // Switch between text, YouTube, and upload input
+        function switchInputType(type) {
+            currentInputType = type;
+
+            const textGroup = document.getElementById('textInputGroup');
+            const youtubeGroup = document.getElementById('youtubeInputGroup');
+            const uploadGroup = document.getElementById('uploadInputGroup');
+            const btnText = document.getElementById('btnText');
+            const btnYoutube = document.getElementById('btnYoutube');
+            const btnUpload = document.getElementById('btnUpload');
+
+            // Hide all groups
+            textGroup.style.display = 'none';
+            youtubeGroup.style.display = 'none';
+            uploadGroup.style.display = 'none';
+
+            // Reset all buttons
+            btnText.style.background = '#f0f0f0';
+            btnText.style.color = '#333';
+            btnYoutube.style.background = '#f0f0f0';
+            btnYoutube.style.color = '#333';
+            btnUpload.style.background = '#f0f0f0';
+            btnUpload.style.color = '#333';
+
+            // Show selected group and highlight button
+            if (type === 'text') {
+                textGroup.style.display = 'block';
+                btnText.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btnText.style.color = 'white';
+            } else if (type === 'youtube') {
+                youtubeGroup.style.display = 'block';
+                btnYoutube.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btnYoutube.style.color = 'white';
+            } else if (type === 'upload') {
+                uploadGroup.style.display = 'block';
+                btnUpload.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btnUpload.style.color = 'white';
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.textContent = `Reading ${file.name}...`;
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                uploadedFileContent = e.target.result;
+                uploadStatus.innerHTML = `✅ <strong>${file.name}</strong> loaded (${(file.size / 1024).toFixed(2)} KB)`;
+                uploadStatus.style.color = '#28a745';
+            };
+
+            reader.onerror = function() {
+                uploadStatus.innerHTML = `❌ Error reading file`;
+                uploadStatus.style.color = '#dc3545';
+            };
+
+            // Read as text
+            reader.readAsText(file);
+        }
+
+        // Process text with selected pattern
+        async function processText() {
+            const pattern = document.getElementById('pattern').value;
+            const strategy = document.getElementById('strategy').value;
+
+            if (!pattern) {
+                showError('Please select a pattern first.');
+                return;
+            }
+
+            let input, isYouTube = false, includeTimestamps = false;
+
+            if (currentInputType === 'youtube') {
+                input = document.getElementById('youtubeUrl').value.trim();
+                includeTimestamps = document.getElementById('includeTimestamps').checked;
+                isYouTube = true;
+
+                if (!input) {
+                    showError('Please enter a YouTube URL.');
+                    return;
+                }
+
+                // Basic YouTube URL validation
+                if (!input.includes('youtube.com') && !input.includes('youtu.be')) {
+                    showError('Please enter a valid YouTube URL.');
+                    return;
+                }
+            } else if (currentInputType === 'upload') {
+                input = uploadedFileContent;
+
+                if (!input || !input.trim()) {
+                    showError('Please upload a document first.');
+                    return;
+                }
+            } else {
+                input = document.getElementById('input').value;
+
+                if (!input.trim()) {
+                    showError('Please enter some text to process.');
+                    return;
+                }
+            }
+
+            hideMessages();
+            showLoading(true);
+            document.getElementById('output').textContent = isYouTube ?
+                'Fetching YouTube transcript...' : 'Processing with AI...';
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: input,
+                        pattern: pattern,
+                        strategy: strategy || undefined,
+                        isYouTube: isYouTube,
+                        includeTimestamps: includeTimestamps
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error (${response.status}): ${errorText}`);
+                }
+
+                const result = await response.text();
+
+                // Check if result is empty or just whitespace
+                if (!result || !result.trim()) {
+                    throw new Error('Received empty response from server. Check if API keys are configured correctly.');
+                }
+
+                document.getElementById('output').textContent = result;
+                showSuccess('Processing complete!');
+
+                // Show the chain button after successful processing
+                document.getElementById('chainBtn').style.display = 'inline-block';
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                document.getElementById('output').textContent = 'Error occurred. See message above.';
+                console.error('Full error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Clear all fields
+        function clearAll() {
+            document.getElementById('pattern').value = '';
+            document.getElementById('input').value = '';
+            document.getElementById('youtubeUrl').value = '';
+            document.getElementById('includeTimestamps').checked = false;
+            document.getElementById('fileUpload').value = '';
+            document.getElementById('uploadStatus').textContent = '';
+            uploadedFileContent = '';
+            document.getElementById('output').textContent = 'Your results will appear here...';
+            document.getElementById('chainBtn').style.display = 'none';
+            hideMessages();
+        }
+
+        // Copy output to clipboard
+        async function copyOutput() {
+            const output = document.getElementById('output').textContent;
+
+            if (output === 'Your results will appear here...' || output === 'Processing...') {
+                showError('No output to copy yet.');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(output);
+                showSuccess('Output copied to clipboard!');
+            } catch (error) {
+                showError('Failed to copy to clipboard.');
+            }
+        }
+
+        // UI Helper functions
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            loading.className = show ? 'loading active' : 'loading';
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.className = 'error active';
+            setTimeout(() => error.className = 'error', 5000);
+        }
+
+        function showSuccess(message) {
+            const success = document.getElementById('success');
+            success.textContent = message;
+            success.className = 'success active';
+            setTimeout(() => success.className = 'success', 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('error').className = 'error';
+            document.getElementById('success').className = 'success';
+        }
+
+        // Chain Pattern Functions
+        function showChainDialog() {
+            const output = document.getElementById('output').textContent;
+
+            if (output === 'Your results will appear here...' || output === 'Processing...' || !output.trim()) {
+                showError('No output to chain. Process something first.');
+                return;
+            }
+
+            document.getElementById('chainDialog').style.display = 'block';
+            document.getElementById('chainOverlay').style.display = 'block';
+        }
+
+        function closeChainDialog() {
+            document.getElementById('chainDialog').style.display = 'none';
+            document.getElementById('chainOverlay').style.display = 'none';
+            document.getElementById('chainPattern').value = '';
+        }
+
+        async function executeChain() {
+            const chainPattern = document.getElementById('chainPattern').value;
+            const currentOutput = document.getElementById('output').textContent;
+
+            if (!chainPattern) {
+                showError('Please select a pattern to chain.');
+                return;
+            }
+
+            closeChainDialog();
+            hideMessages();
+            showLoading(true);
+            document.getElementById('output').textContent = `Chaining with ${chainPattern}...`;
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: currentOutput,
+                        pattern: chainPattern,
+                        isYouTube: false
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error (${response.status}): ${errorText}`);
+                }
+
+                const result = await response.text();
+
+                if (!result || !result.trim()) {
+                    throw new Error('Received empty response from server.');
+                }
+
+                document.getElementById('output').textContent = result;
+                showSuccess(`Pattern chain complete! (${chainPattern})`);
+
+                // Keep the chain button visible for further chaining
+                document.getElementById('chainBtn').style.display = 'inline-block';
+            } catch (error) {
+                showError(`Chain error: ${error.message}`);
+                document.getElementById('output').textContent = currentOutput; // Restore previous output
+                console.error('Full error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Initialize on page load
+        loadPatterns();
+    </script>
+</body>
+</html>
