@@ -293,16 +293,16 @@
                         <span id="strategyIndicator" style="font-size: 0.85em; color: #667eea; font-weight: normal;"></span>
                     </label>
                     <select id="strategy">
-                        <option value="">Auto (Default)</option>
-                        <option value="standard">⚡ Standard - Direct answers (fastest)</option>
-                        <option value="cot">🧠 Chain-of-Thought - Step-by-step reasoning</option>
-                        <option value="cod">✏️ Chain-of-Draft - Concise reasoning</option>
-                        <option value="ltm">📚 Least-to-Most - Progressive difficulty</option>
-                        <option value="tot">🌳 Tree-of-Thought - Multiple approaches</option>
-                        <option value="aot">⚛️ Atom-of-Thought - Atomic decomposition</option>
-                        <option value="reflexion">🔍 Reflexion - Self-critique</option>
-                        <option value="self-refine">✨ Self-Refine - Iterative improvement</option>
-                        <option value="self-consistent">✅ Self-Consistent - Verification (slowest)</option>
+                        <option value="">Auto (Default) - Automatically selects best strategy for the pattern</option>
+                        <option value="standard">⚡ Standard - Direct, immediate answers without explanation (fastest, most efficient)</option>
+                        <option value="cot">🧠 Chain-of-Thought - Shows complete step-by-step reasoning process for transparency</option>
+                        <option value="cod">✏️ Chain-of-Draft - Compact reasoning with brief steps for efficiency with clarity</option>
+                        <option value="ltm">📚 Least-to-Most - Breaks problems into simple building blocks, solving progressively (ideal for learning)</option>
+                        <option value="tot">🌳 Tree-of-Thought - Explores multiple creative approaches in parallel before choosing best path</option>
+                        <option value="aot">⚛️ Atom-of-Thought - Decomposes tasks into independent atomic components for systematic analysis</option>
+                        <option value="reflexion">🔍 Reflexion - Self-critique and refinement cycle ensuring high-quality critical analysis</option>
+                        <option value="self-refine">✨ Self-Refine - Multiple iterative improvement cycles to polish output to perfection</option>
+                        <option value="self-consistent">✅ Self-Consistent - Generates multiple solutions and verifies agreement for accuracy (slowest, most reliable)</option>
                     </select>
                     <div style="margin-top: 8px; font-size: 0.85em; color: #666;" id="strategyDescription">
                         Strategy will be automatically selected based on pattern type
@@ -390,6 +390,7 @@
                     <button class="btn-secondary" onclick="clearAll()">🔄 Clear All</button>
                     <button class="btn-secondary" onclick="copyOutput()">📋 Copy Output</button>
                     <button class="btn-secondary" id="chainBtn" onclick="showChainDialog()" style="display: none;">🔗 Chain Pattern</button>
+                    <button class="btn-secondary" id="saveBtn" onclick="showSaveDialog()" style="display: none;">💾 Save to Obsidian</button>
                 </div>
             </div>
 
@@ -409,6 +410,25 @@
                 </div>
             </div>
             <div id="chainOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeChainDialog()"></div>
+
+            <!-- Save to Obsidian Dialog -->
+            <div id="saveDialog" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 1000; max-width: 500px; width: 90%;">
+                <h3 style="margin-bottom: 20px; color: #667eea;">💾 Save to Obsidian</h3>
+                <p style="margin-bottom: 20px; color: #666;">Save this output to your Obsidian vault with metadata:</p>
+                <div class="form-group">
+                    <label for="saveTitle">Title (required):</label>
+                    <input type="text" id="saveTitle" placeholder="Enter note title..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                </div>
+                <div class="form-group">
+                    <label for="saveTags">Custom Tags (optional, comma-separated):</label>
+                    <input type="text" id="saveTags" placeholder="e.g., research, important, project-name" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+                </div>
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="saveToObsidian()">💾 Save</button>
+                    <button class="btn-secondary" onclick="closeSaveDialog()">✖️ Cancel</button>
+                </div>
+            </div>
+            <div id="saveOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeSaveDialog()"></div>
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
@@ -770,8 +790,9 @@
                 document.getElementById('output').textContent = result;
                 showSuccess('Processing complete!');
 
-                // Show the chain button after successful processing
+                // Show the chain and save buttons after successful processing
                 document.getElementById('chainBtn').style.display = 'inline-block';
+                document.getElementById('saveBtn').style.display = 'inline-block';
             } catch (error) {
                 showError(`Error: ${error.message}`);
                 document.getElementById('output').textContent = 'Error occurred. See message above.';
@@ -792,6 +813,7 @@
             uploadedFileContent = '';
             document.getElementById('output').textContent = 'Your results will appear here...';
             document.getElementById('chainBtn').style.display = 'none';
+            document.getElementById('saveBtn').style.display = 'none';
             hideMessages();
         }
 
@@ -907,6 +929,114 @@
                 showLoading(false);
             }
         }
+
+        // Save to Obsidian Functions
+        let currentProcessingData = {};
+
+        function showSaveDialog() {
+            document.getElementById('saveDialog').style.display = 'block';
+            document.getElementById('saveOverlay').style.display = 'block';
+
+            // Pre-fill title with pattern name if available
+            const pattern = document.getElementById('pattern').value;
+            if (pattern && !document.getElementById('saveTitle').value) {
+                const suggestedTitle = pattern.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                document.getElementById('saveTitle').placeholder = `e.g., ${suggestedTitle} - ${new Date().toLocaleDateString()}`;
+            }
+        }
+
+        function closeSaveDialog() {
+            document.getElementById('saveDialog').style.display = 'none';
+            document.getElementById('saveOverlay').style.display = 'none';
+        }
+
+        async function saveToObsidian() {
+            const title = document.getElementById('saveTitle').value.trim();
+            const tags = document.getElementById('saveTags').value.trim();
+
+            if (!title) {
+                showError('Please enter a title for your note');
+                return;
+            }
+
+            const output = document.getElementById('output').textContent;
+            if (!output || output === 'Your results will appear here...') {
+                showError('No output to save');
+                return;
+            }
+
+            // Get current processing context
+            const pattern = document.getElementById('pattern').value;
+            const strategy = document.getElementById('strategy').value;
+            const inputType = currentInputType;
+            const youtubeUrl = inputType === 'youtube' ? document.getElementById('youtubeUrl').value : null;
+            const fileName = inputType === 'upload' ? uploadedFileName : null;
+
+            // Parse custom tags
+            const customTags = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
+
+            const saveData = {
+                title: title,
+                content: output,
+                pattern: pattern,
+                sourceType: inputType,
+                sourceUrl: youtubeUrl,
+                sourceFile: fileName,
+                customTags: customTags,
+                strategy: strategy || 'auto',
+                chainedFrom: currentProcessingData.chainedFrom || null
+            };
+
+            try {
+                showLoading(true);
+
+                const response = await fetch(`${API_BASE}/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Save failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                closeSaveDialog();
+                showSuccess(`✅ Saved to Obsidian: ${result.filename}`);
+
+                // Clear the save form
+                document.getElementById('saveTitle').value = '';
+                document.getElementById('saveTags').value = '';
+
+            } catch (error) {
+                showError(`Save error: ${error.message}`);
+                console.error('Full error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Track chained processing
+        let lastPattern = null;
+
+        // Update processText to track the pattern
+        const originalProcessText = processText;
+        processText = async function() {
+            currentProcessingData.chainedFrom = null;
+            lastPattern = document.getElementById('pattern').value;
+            await originalProcessText();
+        };
+
+        // Update executeChain to track the chain
+        const originalExecuteChain = executeChain;
+        executeChain = async function() {
+            currentProcessingData.chainedFrom = lastPattern;
+            lastPattern = document.getElementById('chainPattern').value;
+            await originalExecuteChain();
+        };
 
         // Initialize on page load
         loadPatterns();

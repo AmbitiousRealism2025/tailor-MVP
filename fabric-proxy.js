@@ -13,6 +13,12 @@ const path = require('path');
 
 const PORT = 3000;
 const PATTERNS_DIR = path.join(process.env.HOME, '.config/fabric/patterns');
+const OBSIDIAN_VAULT = '/Volumes/Ambitious Realism TB5 2TB/Ambitious Realism';
+
+// Cache for pattern details
+let patternDetailsCache = null;
+let patternsCacheTimestamp = null;
+const CACHE_TTL = 300000; // 5 minutes
 
 // Enable CORS
 function setCORSHeaders(res) {
@@ -32,15 +38,21 @@ function getPatterns() {
     }
 }
 
-// Get pattern details (name + description)
-function getPatternDetails() {
+// Get pattern details (name + description) - async with caching
+async function getPatternDetails() {
+    // Return cached data if still valid
+    const now = Date.now();
+    if (patternDetailsCache && patternsCacheTimestamp && (now - patternsCacheTimestamp < CACHE_TTL)) {
+        return patternDetailsCache;
+    }
+
     const patterns = getPatterns();
-    return patterns.map(pattern => {
+    const promises = patterns.map(async (pattern) => {
         const systemFile = path.join(PATTERNS_DIR, pattern, 'system.md');
         let description = '';
 
         try {
-            const content = fs.readFileSync(systemFile, 'utf8');
+            const content = await fs.promises.readFile(systemFile, 'utf8');
             // Extract first sentence from IDENTITY and PURPOSE section
             const match = content.match(/# IDENTITY and PURPOSE\s+([^\n]+)/i);
             if (match) {
@@ -60,6 +72,14 @@ function getPatternDetails() {
             description: description
         };
     });
+
+    const result = await Promise.all(promises);
+
+    // Update cache
+    patternDetailsCache = result;
+    patternsCacheTimestamp = now;
+
+    return result;
 }
 
 // Process text with Fabric CLI
@@ -67,10 +87,9 @@ function processFabric(pattern, input, strategy, callback) {
     // Build arguments for fabric command
     const args = ['-p', pattern, '--stream'];
 
-    // Add strategy flag if provided
-    if (strategy) {
-        args.push('--strategy', strategy);
-    }
+    // Note: Strategy support requires running 'fabric --setup' to download strategies
+    // For now, strategies are not used even if provided
+    // TODO: Add strategy support when strategies are configured
 
     const fabric = spawn('fabric', args, {
         env: process.env
@@ -97,6 +116,73 @@ function processFabric(pattern, input, strategy, callback) {
 
     // Send input to fabric
     fabric.stdin.write(input);
+    fabric.stdin.end();
+}
+
+// Extract metadata from content using AI
+function extractMetadata(content, callback) {
+    const metadataPrompt = `Analyze the following content and extract comprehensive metadata for optimal semantic search and embedding. Return ONLY valid JSON with this exact structure:
+
+{
+  "summary": "1-2 sentence embedding-optimized summary capturing the essence",
+  "keywords": ["keyword1", "keyword2", "keyword3", ...],
+  "category": "single category (e.g., Technical, Research, Business, Creative, Educational)",
+  "domain_tags": ["domain1", "domain2", ...],
+  "topic_tags": ["topic1", "topic2", ...],
+  "entities": {
+    "people": ["Person Name", ...],
+    "orgs": ["Organization", ...],
+    "products": ["Product/Tool", ...]
+  }
+}
+
+Guidelines:
+- summary: Front-load important concepts, natural language
+- keywords: 8-15 terms for semantic search, include synonyms
+- category: High-level classification
+- domain_tags: Knowledge domains (e.g., ai, software-engineering, video-production)
+- topic_tags: Specific topics (e.g., prompt-engineering, parallel-execution)
+- entities: Extract mentioned people, organizations, and products/tools
+
+Content to analyze:
+${content}`;
+
+    const fabric = spawn('fabric', ['--stream'], {
+        env: process.env
+    });
+
+    let output = '';
+    let error = '';
+
+    fabric.stdout.on('data', (data) => {
+        output += data.toString();
+    });
+
+    fabric.stderr.on('data', (data) => {
+        error += data.toString();
+    });
+
+    fabric.on('close', (code) => {
+        if (code !== 0) {
+            callback(new Error(error || `Metadata extraction failed with code ${code}`), null);
+        } else {
+            try {
+                // Try to parse JSON from output
+                const jsonMatch = output.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const metadata = JSON.parse(jsonMatch[0]);
+                    callback(null, metadata);
+                } else {
+                    callback(new Error('No valid JSON found in response'), null);
+                }
+            } catch (parseError) {
+                callback(new Error(`Failed to parse metadata JSON: ${parseError.message}`), null);
+            }
+        }
+    });
+
+    // Send prompt to fabric
+    fabric.stdin.write(metadataPrompt);
     fabric.stdin.end();
 }
 
@@ -217,9 +303,16 @@ const server = http.createServer((req, res) => {
 
     // Get patterns with descriptions
     if (req.method === 'GET' && req.url === '/patterns/details') {
-        const patternDetails = getPatternDetails();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(patternDetails));
+        getPatternDetails()
+            .then(patternDetails => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(patternDetails));
+            })
+            .catch(error => {
+                console.error('Error loading pattern details:', error);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Error loading patterns');
+            });
         return;
     }
 
@@ -278,6 +371,200 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Save to Obsidian
+    if (req.method === 'POST' && req.url === '/save') {
+        let body = '';
+
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                const { title, content, pattern, sourceType, sourceUrl, sourceFile, customTags, strategy, chainedFrom } = data;
+
+                if (!title || !content || !pattern || !sourceType) {
+                    res.writeHead(400, { 'Content-Type': 'text/plain' });
+                    res.end('Missing required fields: title, content, pattern, sourceType');
+                    return;
+                }
+
+                console.log('🔍 Extracting metadata from content...');
+
+                // Extract AI-generated metadata from content
+                extractMetadata(content, (err, aiMetadata) => {
+                    if (err) {
+                        console.error('Metadata extraction error:', err);
+                        // Continue with basic metadata if AI extraction fails
+                        aiMetadata = {
+                            summary: title,
+                            keywords: [pattern.replace(/_/g, ' ')],
+                            category: 'AI-Processing',
+                            domain_tags: [],
+                            topic_tags: [],
+                            entities: { people: [], orgs: [], products: [] }
+                        };
+                    }
+
+                    // Generate filename: title.md (no date prefix)
+                    const now = new Date();
+                    const dateStr = now.toISOString().split('T')[0];
+                    const titleSlug = title.toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '')
+                        .substring(0, 80);
+                    const filename = `${titleSlug}.md`;
+                    const filepath = path.join(OBSIDIAN_VAULT, filename);
+
+                    // Generate front matter
+                    const timestamp = now.toISOString();
+                    const fabricId = `fabric:${pattern}-${Date.now()}`;
+
+                    // Build comprehensive tags array
+                    const tags = [
+                        'fabric',  // Always include for Dataview filtering
+                        'source/fabric',
+                        'format/ai-processed',
+                        `pattern/${pattern}`,
+                        `source/${sourceType}`
+                    ];
+
+                    // Add AI-generated domain and topic tags with namespaces
+                    if (aiMetadata.domain_tags && aiMetadata.domain_tags.length > 0) {
+                        aiMetadata.domain_tags.forEach(tag => {
+                            tags.push(`domain/${tag.toLowerCase().replace(/\s+/g, '-')}`);
+                        });
+                    }
+
+                    if (aiMetadata.topic_tags && aiMetadata.topic_tags.length > 0) {
+                        aiMetadata.topic_tags.forEach(tag => {
+                            tags.push(`topic/${tag.toLowerCase().replace(/\s+/g, '-')}`);
+                        });
+                    }
+
+                    // Add custom tags if provided
+                    if (customTags && customTags.length > 0) {
+                        tags.push(...customTags);
+                    }
+
+                    // Build front matter object
+                    const frontmatter = {
+                        schema: 'v1',
+                        id: fabricId,
+                        title: title,
+                        date_created: dateStr,
+                        type: 'fabric-output',
+                        category: aiMetadata.category || 'AI-Processing',
+                        source_type: sourceType,
+                        fabric_pattern: pattern,
+                        fabric_model: 'glm-4.6',
+                        processed_at: timestamp,
+                        tags: tags,
+                        keywords: aiMetadata.keywords || [pattern.replace(/_/g, ' ')],
+                        summary: aiMetadata.summary || title
+                    };
+
+                    // Add entities if present
+                    if (aiMetadata.entities) {
+                        const entities = {};
+                        if (aiMetadata.entities.people && aiMetadata.entities.people.length > 0) {
+                            entities.people = aiMetadata.entities.people;
+                        }
+                        if (aiMetadata.entities.orgs && aiMetadata.entities.orgs.length > 0) {
+                            entities.orgs = aiMetadata.entities.orgs;
+                        }
+                        if (aiMetadata.entities.products && aiMetadata.entities.products.length > 0) {
+                            entities.products = aiMetadata.entities.products;
+                        }
+                        if (Object.keys(entities).length > 0) {
+                            frontmatter.entities = entities;
+                        }
+                    }
+
+                    // Add optional fields
+                    if (sourceUrl) {
+                        frontmatter.source_url = sourceUrl;
+                        if (sourceType === 'youtube') {
+                            frontmatter.canonical_url = sourceUrl.replace('youtu.be/', 'youtube.com/watch?v=');
+                        }
+                    }
+                    if (sourceFile) {
+                        frontmatter.source_file = sourceFile;
+                    }
+                    if (strategy) {
+                        frontmatter.fabric_strategy = strategy;
+                    }
+                    if (chainedFrom) {
+                        frontmatter.chained_from = chainedFrom;
+                    }
+
+                    // Generate YAML front matter string
+                    let yamlContent = '---\n';
+                    for (const [key, value] of Object.entries(frontmatter)) {
+                        if (Array.isArray(value)) {
+                            yamlContent += `${key}:\n`;
+                            value.forEach(item => {
+                                yamlContent += `  - "${item}"\n`;
+                            });
+                        } else if (typeof value === 'object') {
+                            yamlContent += `${key}:\n`;
+                            for (const [subKey, subValue] of Object.entries(value)) {
+                                if (Array.isArray(subValue)) {
+                                    yamlContent += `  ${subKey}:\n`;
+                                    subValue.forEach(item => {
+                                        yamlContent += `    - "${item}"\n`;
+                                    });
+                                }
+                            }
+                        } else {
+                            yamlContent += `${key}: "${value}"\n`;
+                        }
+                    }
+                    yamlContent += '---\n\n';
+
+                    // Clean content: remove markdown code block wrappers if present
+                    let cleanContent = content.trim();
+                    if (cleanContent.startsWith('```markdown') || cleanContent.startsWith('```md')) {
+                        // Remove opening code block
+                        cleanContent = cleanContent.replace(/^```(markdown|md)\n/, '');
+                        // Remove closing code block
+                        cleanContent = cleanContent.replace(/\n```$/, '');
+                    } else if (cleanContent.startsWith('```')) {
+                        // Remove any generic code block wrapper
+                        cleanContent = cleanContent.replace(/^```[a-z]*\n/, '');
+                        cleanContent = cleanContent.replace(/\n```$/, '');
+                    }
+
+                    // Combine front matter with cleaned content
+                    const fileContent = yamlContent + cleanContent;
+
+                    // Write file to Obsidian vault
+                    fs.writeFile(filepath, fileContent, 'utf8', (err) => {
+                        if (err) {
+                            console.error('Error saving to Obsidian:', err);
+                            res.writeHead(500, { 'Content-Type': 'text/plain' });
+                            res.end(`Error saving file: ${err.message}`);
+                        } else {
+                            console.log(`✅ Saved to Obsidian: ${filename}`);
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({
+                                success: true,
+                                filename: filename,
+                                filepath: filepath
+                            }));
+                        }
+                    });
+                });
+
+            } catch (error) {
+                res.writeHead(400, { 'Content-Type': 'text/plain' });
+                res.end('Invalid JSON');
+            }
+        });
+        return;
+    }
+
     // Health check
     if (req.method === 'GET' && req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -299,5 +586,8 @@ server.listen(PORT, () => {
     console.log(`  GET  /patterns/names   - List all patterns`);
     console.log(`  GET  /patterns/details - List patterns with descriptions`);
     console.log(`  POST /chat             - Process text with pattern`);
+    console.log(`  POST /save             - Save output to Obsidian`);
     console.log(`  GET  /health           - Health check`);
+    console.log('');
+    console.log(`📝 Obsidian vault: ${OBSIDIAN_VAULT}`);
 });
