@@ -795,7 +795,10 @@
     </div>
 
     <script>
+        const VERSION = '0.3.1'; // Updated time estimates for large files
         const API_BASE = 'http://localhost:3000';
+
+        console.log(`🎨 Tailor MVP v${VERSION} - Improved time estimates loaded`);
 
         // Auto-save Drafts functionality
         const DRAFT_TEXT_KEY = 'tailor-draft-text';
@@ -1380,11 +1383,48 @@
             const contentType = isYouTube ? 'youtube' : 'text';
             const timeEstimate = calculateTimeEstimate(contentLength, contentType);
 
+            // Debug logging
+            console.log(`📊 Content length: ${contentLength} chars (${(contentLength/1024).toFixed(2)}KB)`);
+            console.log(`⏱️ Time estimate: ${timeEstimate}`);
+
+            // Calculate estimated duration in milliseconds for progress bar
+            let estimatedDurationMs;
+            if (contentLength < 500) {
+                estimatedDurationMs = 15000;
+            } else if (contentLength < 2000) {
+                estimatedDurationMs = 30000;
+            } else if (contentLength < 10000) {
+                estimatedDurationMs = 60000;
+            } else if (contentLength < 50000) {
+                estimatedDurationMs = 120000;
+            } else {
+                estimatedDurationMs = 180000;
+            }
+
+            if (isYouTube) {
+                estimatedDurationMs = Math.max(estimatedDurationMs, 45000); // Minimum 45s for YouTube
+            }
+
+            // Calculate file size category for display
+            let sizeCategory = '';
+            if (contentLength < 500) {
+                sizeCategory = 'Small file';
+            } else if (contentLength < 2000) {
+                sizeCategory = 'Medium file';
+            } else if (contentLength < 10000) {
+                sizeCategory = 'Large file';
+            } else if (contentLength < 50000) {
+                sizeCategory = 'Very large file';
+            } else {
+                sizeCategory = 'Massive file';
+            }
+
             // Initialize enhanced loading state
             updateLoadingState({
                 pattern: patternDisplayName,
                 strategy: strategyDisplayName,
-                timeEstimate: timeEstimate
+                timeEstimate: timeEstimate,
+                tip: `${sizeCategory} (${Math.round(contentLength / 1024 * 10) / 10}KB) - Processing time scales with content size.`
             });
 
             document.getElementById('output').textContent = isYouTube ?
@@ -1394,13 +1434,14 @@
                 // Set initial loading state
                 if (isYouTube) {
                     setLoadingState('youtube-fetching');
-                    startAnimatedProgress(3, 45000); // 45 seconds for YouTube processing
+                    startAnimatedProgress(3, estimatedDurationMs);
                 } else {
                     setLoadingState('analyzing', {
                         pattern: patternDisplayName,
-                        strategy: strategyDisplayName
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass the calculated time estimate
                     });
-                    startAnimatedProgress(3, 35000); // 35 seconds for text processing
+                    startAnimatedProgress(3, estimatedDurationMs);
                 }
 
                 // Add delay to show initial loading state
@@ -1418,12 +1459,14 @@
 
                     setLoadingState('applying-pattern', {
                         pattern: patternDisplayName,
-                        strategy: strategyDisplayName
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
                     });
                 } else {
                     setLoadingState('applying-pattern', {
                         pattern: patternDisplayName,
-                        strategy: strategyDisplayName
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
                     });
                 }
 
@@ -1678,17 +1721,34 @@
             clearInterval(loadingProgressInterval);
 
             loadingProgressInterval = setInterval(() => {
-                progress += (100 / (durationMs / 100)); // Increment every 100ms
-                updateProgressBar(Math.min(progress, 95)); // Cap at 95% until completion
+                // Slow down progress as it approaches the cap
+                // This prevents the "stuck at 90%" feeling
+                let increment = 100 / (durationMs / 100); // Base increment every 100ms
+
+                if (progress > 60) {
+                    // Slow down to 50% speed after 60%
+                    increment *= 0.5;
+                }
+                if (progress > 70) {
+                    // Slow down to 25% speed after 70%
+                    increment *= 0.5;
+                }
+
+                progress += increment;
+
+                // Cap at 80% until actual completion (more conservative than 95%)
+                const cappedProgress = Math.min(progress, 80);
+                updateProgressBar(cappedProgress);
 
                 // Auto-advance steps based on progress
-                if (progress > 66 && currentProgressStep < 3) {
+                if (cappedProgress > 60 && currentProgressStep < 3) {
                     updateProgressStep(3);
-                } else if (progress > 33 && currentProgressStep < 2) {
+                } else if (cappedProgress > 30 && currentProgressStep < 2) {
                     updateProgressStep(2);
                 }
 
-                if (progress >= 95) {
+                // Stop incrementing at 80% and wait for actual completion
+                if (cappedProgress >= 80) {
                     clearInterval(loadingProgressInterval);
                     loadingProgressInterval = null;
                 }
@@ -1745,19 +1805,57 @@
 
         // Calculate time estimate based on content length and type
         function calculateTimeEstimate(contentLength, contentType = 'text') {
-            let baseTime = 15000; // 15 seconds base
+            // Tiered time estimates based on file size
+            let estimatedSeconds;
 
             if (contentType === 'youtube') {
-                baseTime = 25000; // 25 seconds base for YouTube (includes fetch time)
+                // YouTube has additional fetch overhead
+                if (contentLength < 1000) {
+                    estimatedSeconds = 30;
+                } else if (contentLength < 5000) {
+                    estimatedSeconds = 45;
+                } else if (contentLength < 15000) {
+                    estimatedSeconds = 75;
+                } else {
+                    estimatedSeconds = 120;
+                }
+            } else {
+                // Text/upload processing
+                if (contentLength < 500) {
+                    // Small: under 500 chars (~100 words)
+                    estimatedSeconds = 15;
+                } else if (contentLength < 2000) {
+                    // Medium: 500-2000 chars (~100-400 words)
+                    estimatedSeconds = 30;
+                } else if (contentLength < 10000) {
+                    // Large: 2000-10000 chars (~400-2000 words)
+                    estimatedSeconds = 60;
+                } else if (contentLength < 50000) {
+                    // Very Large: 10k-50k chars (~2000-10000 words)
+                    estimatedSeconds = 120;
+                } else {
+                    // Massive: 50k+ chars (10k+ words)
+                    estimatedSeconds = 180;
+                }
             }
 
-            // Add time based on content length (rough estimate)
-            const lengthMultiplier = Math.min(3, Math.max(1, contentLength / 2000));
-            const estimatedMs = baseTime * lengthMultiplier;
+            // Add buffer range (±20%)
+            const rangeStart = Math.ceil(estimatedSeconds * 0.8);
+            const rangeEnd = Math.ceil(estimatedSeconds * 1.2);
 
-            const seconds = Math.ceil(estimatedMs / 1000);
-            const rangeStart = Math.ceil(seconds * 0.8);
-            const rangeEnd = Math.ceil(seconds * 1.5);
+            // Format as minutes if over 60 seconds
+            if (estimatedSeconds >= 60) {
+                const minStart = Math.floor(rangeStart / 60);
+                const minEnd = Math.ceil(rangeEnd / 60);
+                const secStart = rangeStart % 60;
+                const secEnd = rangeEnd % 60;
+
+                if (minStart === minEnd) {
+                    return `Estimated time: ${minStart}:${String(secStart).padStart(2, '0')}-${minEnd}:${String(secEnd).padStart(2, '0')} min`;
+                } else {
+                    return `Estimated time: ${minStart}-${minEnd} minutes`;
+                }
+            }
 
             return `Estimated time: ${rangeStart}-${rangeEnd} seconds`;
         }
@@ -1818,6 +1916,20 @@
             const contentLength = currentOutput.length;
             const timeEstimate = calculateTimeEstimate(contentLength, 'text');
 
+            // Calculate estimated duration for progress bar
+            let estimatedDurationMs;
+            if (contentLength < 500) {
+                estimatedDurationMs = 15000;
+            } else if (contentLength < 2000) {
+                estimatedDurationMs = 30000;
+            } else if (contentLength < 10000) {
+                estimatedDurationMs = 60000;
+            } else if (contentLength < 50000) {
+                estimatedDurationMs = 120000;
+            } else {
+                estimatedDurationMs = 180000;
+            }
+
             // Initialize chain loading state
             updateLoadingState({
                 title: 'Chaining Pattern',
@@ -1838,7 +1950,7 @@
                     pattern: patternDisplayName,
                     strategy: 'Chain Processing'
                 });
-                startAnimatedProgress(3, 25000); // 25 seconds for chain processing
+                startAnimatedProgress(3, estimatedDurationMs);
 
                 // Add delay to show initial state
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1946,6 +2058,16 @@
             const strategy = document.getElementById('strategy').value;
             const inputType = currentInputType;
             const youtubeUrl = inputType === 'youtube' ? document.getElementById('youtubeUrl').value : null;
+            
+            // Handle uploaded file name
+            let uploadedFileName = null;
+            if (inputType === 'upload') {
+                const fileInput = document.getElementById('fileUpload');
+                if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                    uploadedFileName = fileInput.files[0].name;
+                }
+            }
+            
             const fileName = inputType === 'upload' ? uploadedFileName : null;
 
             // Parse custom tags

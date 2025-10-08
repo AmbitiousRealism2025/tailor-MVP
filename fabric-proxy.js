@@ -83,14 +83,22 @@ async function getPatternDetails() {
 }
 
 // Process text with Fabric CLI
-function processFabric(pattern, input, strategy, callback) {
+function processFabric(pattern, input, strategy, callback, variables = {}) {
     // Build arguments for fabric command
     const args = ['-p', pattern, '--stream'];
+
+    // Add variables if provided
+    for (const [key, value] of Object.entries(variables)) {
+        args.push('-v', `#${key}=${value}`);
+    }
 
     // Note: Strategy support requires running 'fabric --setup' to download strategies
     // For now, strategies are not used even if provided
     // TODO: Add strategy support when strategies are configured
 
+    console.log(`DEBUG: Starting Fabric with pattern: ${pattern}, input length: ${input.length}`);
+    console.log(`DEBUG: Variables: ${JSON.stringify(variables)}`);
+    
     const fabric = spawn('fabric', args, {
         env: process.env
     });
@@ -99,22 +107,38 @@ function processFabric(pattern, input, strategy, callback) {
     let error = '';
 
     fabric.stdout.on('data', (data) => {
-        output += data.toString();
+        const chunk = data.toString();
+        output += chunk;
+        console.log(`DEBUG: Fabric stdout chunk (${chunk.length} chars)`);
     });
 
     fabric.stderr.on('data', (data) => {
-        error += data.toString();
+        const chunk = data.toString();
+        error += chunk;
+        console.log(`DEBUG: Fabric stderr: ${chunk}`);
     });
 
     fabric.on('close', (code) => {
+        console.log(`DEBUG: Fabric exited with code: ${code}`);
+        console.log(`DEBUG: Total output length: ${output.length}`);
+        console.log(`DEBUG: Total error length: ${error.length}`);
+        
         if (code !== 0) {
+            console.error(`DEBUG: Fabric failed. Error: ${error || 'No error message'}`);
             callback(new Error(error || `Fabric exited with code ${code}`), null);
         } else {
+            console.log(`DEBUG: Fabric succeeded`);
             callback(null, output);
         }
     });
 
+    fabric.on('error', (err) => {
+        console.error(`DEBUG: Fabric process error: ${err.message}`);
+        callback(new Error(`Failed to start Fabric: ${err.message}`), null);
+    });
+
     // Send input to fabric
+    console.log(`DEBUG: Sending input to Fabric...`);
     fabric.stdin.write(input);
     fabric.stdin.end();
 }
@@ -195,29 +219,44 @@ function parseVTT(vttContent) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
-        // Skip WEBVTT header, timestamps, and empty lines
+        // Skip WEBVTT header, timestamps, empty lines, and position data
         if (line.startsWith('WEBVTT') ||
             line.match(/^\d{2}:\d{2}:\d{2}/) ||
+            line.match(/-->/) ||
             line === '' ||
             line.startsWith('Kind:') ||
-            line.startsWith('Language:')) {
+            line.startsWith('Language:') ||
+            line.startsWith('align:') ||
+            line.startsWith('position:')) {
             continue;
         }
 
-        // Clean up the text (remove timestamps embedded in text)
-        const cleanText = line.replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, '')
-                              .replace(/<c>/g, ' ')
-                              .replace(/<\/c>/g, '')
-                              .trim();
+        // Skip lines that are just timestamps or metadata
+        if (line.match(/^[\d\s]+$/) || line.match(/^\[Music\]$/)) {
+            continue;
+        }
 
-        // Add text if it's not a duplicate and not just tags
-        if (cleanText && cleanText !== lastText && !cleanText.match(/^align:|^position:/)) {
+        // Clean up the text (remove timestamps embedded in text and HTML tags)
+        let cleanText = line.replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, '')
+                           .replace(/<c[^>]*>/g, '')
+                           .replace(/<\/c>/g, '')
+                           .replace(/<[^>]*>/g, '') // Remove any other HTML tags
+                           .trim();
+
+        // Skip empty lines after cleaning
+        if (!cleanText) {
+            continue;
+        }
+
+        // Add text if it's not a duplicate
+        if (cleanText !== lastText) {
             transcript += cleanText + ' ';
             lastText = cleanText;
         }
     }
 
-    return transcript.trim();
+    // Clean up extra spaces and return
+    return transcript.replace(/\s+/g, ' ').trim();
 }
 
 // Process YouTube video with yt-dlp directly
@@ -277,7 +316,13 @@ function processYouTube(pattern, youtubeUrl, includeTimestamps, strategy, callba
             console.log(`Transcript fetched (${transcript.length} chars), processing with pattern: ${pattern}`);
 
             // Now process the transcript with the pattern
-            processFabric(pattern, transcript, strategy, callback);
+            // Check if this pattern needs variables
+            let variables = {};
+            if (pattern === 'write_essay') {
+                variables.author_name = 'George Orwell'; // Default author
+            }
+            
+            processFabric(pattern, transcript, strategy, callback, variables);
         });
     });
 }
@@ -351,6 +396,12 @@ const server = http.createServer((req, res) => {
                 } else {
                     console.log(`Text request: pattern=${pattern}, strategy=${strategy || 'auto'}, message length=${message.length}`);
 
+                    // Check if this pattern needs variables
+                    let variables = {};
+                    if (pattern === 'write_essay') {
+                        variables.author_name = 'George Orwell'; // Default author
+                    }
+                    
                     processFabric(pattern, message, strategy, (error, output) => {
                         if (error) {
                             console.error('Error:', error.message);

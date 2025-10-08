@@ -59,8 +59,8 @@ Comprehensive save functionality with:
 ## 📋 Development Status
 
 ### Current Release
-- **Version:** 0.3.0 - Phase 1 Quick Wins ✅
-- **Status:** Production Ready - Phase 1 Complete
+- **Version:** 0.3.1 - Enhanced Processing & Time Estimates ✅
+- **Status:** Production Ready - Performance & UX Improvements
 - **Branch:** `feature/roadmap-implementation`
 
 ### ✅ Phase 1 Completed (Quick Wins)
@@ -68,6 +68,13 @@ Comprehensive save functionality with:
 - **Auto-Save Drafts** - localStorage persistence with 300ms debouncing
 - **Recent Patterns History** - Tracks last 10 patterns with quick access buttons
 - **Processing Status Indicator** - Enhanced loading with progress bars and time estimates
+
+### ✅ Latest Improvements (v0.3.1)
+- **Accurate Time Estimates** - Tiered estimates based on file size (15s to 3 minutes)
+- **Improved Progress Bar** - Smooth progression with gradual slowdown, caps at 80% to prevent "stuck" feeling
+- **Large File Support** - Optimized handling for files up to 50KB+ with appropriate time scaling
+- **Complete Output Display** - Fixed `generate_frontmatter` pattern to show complete content with frontmatter
+- **File Size Indicators** - Visual feedback showing file size category during processing
 
 ### What's Next
 See [Roadmap.md](Roadmap.md) for comprehensive feature planning including:
@@ -157,7 +164,7 @@ const DEBUG = true;
 ---
 
 **Last Updated:** 2025-10-07
-**Version:** 0.3.0 - Phase 1 Quick Wins
+**Version:** 0.3.1 - Enhanced Processing & Time Estimates
 **Repository:** https://github.com/AmbitiousRealism2025/tailor-MVP
 
 ---
