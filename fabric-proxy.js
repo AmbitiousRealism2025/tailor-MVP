@@ -7,9 +7,11 @@
  */
 
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const cheerio = require('cheerio');
 
 const PORT = 3000;
 const PATTERNS_DIR = path.join(process.env.HOME, '.config/fabric/patterns');
@@ -122,7 +124,9 @@ function processFabric(pattern, input, strategy, callback, variables = {}) {
         console.log(`DEBUG: Fabric exited with code: ${code}`);
         console.log(`DEBUG: Total output length: ${output.length}`);
         console.log(`DEBUG: Total error length: ${error.length}`);
-        
+        console.log(`DEBUG: First 500 chars of output: ${output.substring(0, 500)}`);
+        console.log(`DEBUG: First 500 chars of error: ${error.substring(0, 500)}`);
+
         if (code !== 0) {
             console.error(`DEBUG: Fabric failed. Error: ${error || 'No error message'}`);
             callback(new Error(error || `Fabric exited with code ${code}`), null);
@@ -259,6 +263,240 @@ function parseVTT(vttContent) {
     return transcript.replace(/\s+/g, ' ').trim();
 }
 
+// Fetch URL content with http/https
+function fetchURL(url, callback) {
+    const urlObj = new URL(url);
+    const protocol = urlObj.protocol === 'https:' ? https : http;
+
+    const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port,
+        path: urlObj.pathname + urlObj.search,
+        method: 'GET',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9'
+        },
+        timeout: 30000 // 30 second timeout
+    };
+
+    console.log(`Fetching URL: ${url}`);
+
+    const req = protocol.request(options, (res) => {
+        // Handle redirects
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            console.log(`Redirect to: ${res.headers.location}`);
+            const redirectUrl = new URL(res.headers.location, url).href;
+            fetchURL(redirectUrl, callback);
+            return;
+        }
+
+        // Check for error status codes
+        if (res.statusCode !== 200) {
+            callback(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`), null);
+            return;
+        }
+
+        let data = '';
+        res.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        res.on('end', () => {
+            console.log(`Fetched ${data.length} bytes from ${url}`);
+            callback(null, data);
+        });
+    });
+
+    req.on('error', (err) => {
+        callback(new Error(`Network error: ${err.message}`), null);
+    });
+
+    req.on('timeout', () => {
+        req.destroy();
+        callback(new Error('Request timeout after 30 seconds'), null);
+    });
+
+    req.end();
+}
+
+// Detect paywall/auth requirements
+function detectPaywall(html, url) {
+    const paywallIndicators = [
+        'subscribe to continue',
+        'subscription required',
+        'please sign in',
+        'login to continue',
+        'create a free account',
+        'this content is exclusive',
+        'unlock this article',
+        'paywall',
+        'premium content',
+        'members only',
+        'subscriber exclusive'
+    ];
+
+    const lowerHtml = html.toLowerCase();
+
+    for (const indicator of paywallIndicators) {
+        if (lowerHtml.includes(indicator)) {
+            return true;
+        }
+    }
+
+    // Check for specific paywall domains
+    const paywallDomains = ['nytimes.com', 'wsj.com', 'ft.com', 'bloomberg.com'];
+    const urlLower = url.toLowerCase();
+    for (const domain of paywallDomains) {
+        if (urlLower.includes(domain)) {
+            // These sites often have paywalls
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Extract text content from HTML
+function extractTextFromHTML(html, url) {
+    const $ = cheerio.load(html);
+
+    // Check for paywall
+    if (detectPaywall(html, url)) {
+        console.warn(`Potential paywall detected for ${url}`);
+        // Continue anyway, but user will be warned
+    }
+
+    // Remove unwanted elements
+    $('script, style, nav, header, footer, aside, iframe, noscript').remove();
+    $('.advertisement, .ad, .sidebar, .comments, .related-posts').remove();
+    $('[role="navigation"], [role="complementary"]').remove();
+
+    // Try to find main content area (common patterns)
+    let mainContent = $('article').first();
+    if (mainContent.length === 0) {
+        mainContent = $('main').first();
+    }
+    if (mainContent.length === 0) {
+        mainContent = $('.post-content, .article-content, .entry-content, .content').first();
+    }
+    if (mainContent.length === 0) {
+        // Fallback to body
+        mainContent = $('body');
+    }
+
+    // Extract text with basic formatting
+    let text = '';
+
+    mainContent.find('*').each(function() {
+        const elem = $(this);
+        const tagName = this.tagName;
+
+        // Skip if already processed by parent
+        if (elem.parents().filter(function() {
+            return $(this).data('processed');
+        }).length > 0) {
+            return;
+        }
+
+        // Handle headings
+        if (/^h[1-6]$/i.test(tagName)) {
+            text += '\n\n' + elem.text().trim() + '\n';
+        }
+        // Handle paragraphs
+        else if (tagName === 'p') {
+            text += '\n' + elem.text().trim() + '\n';
+        }
+        // Handle lists
+        else if (tagName === 'li') {
+            text += '• ' + elem.text().trim() + '\n';
+        }
+        // Handle blockquotes
+        else if (tagName === 'blockquote') {
+            text += '\n> ' + elem.text().trim() + '\n';
+        }
+        // Handle tables - convert to simple text representation
+        else if (tagName === 'table') {
+            elem.find('tr').each(function() {
+                const row = $(this);
+                const cells = [];
+                row.find('td, th').each(function() {
+                    cells.push($(this).text().trim());
+                });
+                if (cells.length > 0) {
+                    text += cells.join(' | ') + '\n';
+                }
+            });
+            text += '\n';
+        }
+        // Handle code blocks
+        else if (tagName === 'pre' || tagName === 'code') {
+            text += '\n' + elem.text().trim() + '\n';
+        }
+    });
+
+    // If we didn't get much text, fall back to simple text extraction
+    if (text.trim().length < 100) {
+        text = mainContent.text();
+    }
+
+    // Clean up whitespace
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+    return text;
+}
+
+// Process URL with Fabric pattern
+function processURL(pattern, url, strategy, callback) {
+    console.log(`Processing URL: ${url} with pattern: ${pattern}`);
+
+    // Validate URL format
+    try {
+        new URL(url);
+    } catch (err) {
+        callback(new Error('Invalid URL format'), null);
+        return;
+    }
+
+    // Fetch the URL
+    fetchURL(url, (fetchErr, html) => {
+        if (fetchErr) {
+            callback(fetchErr, null);
+            return;
+        }
+
+        try {
+            // Extract text from HTML
+            const text = extractTextFromHTML(html, url);
+
+            if (!text || text.length < 50) {
+                callback(new Error('Could not extract meaningful content from URL'), null);
+                return;
+            }
+
+            // Check for paywall warning
+            if (detectPaywall(html, url)) {
+                console.warn('⚠️ Warning: This content may be behind a paywall');
+                // Could optionally pass this warning back to frontend
+            }
+
+            console.log(`Extracted ${text.length} characters from URL`);
+
+            // Process with Fabric pattern
+            let variables = {};
+            if (pattern === 'write_essay') {
+                variables.author_name = 'George Orwell';
+            }
+
+            processFabric(pattern, text, strategy, callback, variables);
+
+        } catch (parseErr) {
+            callback(new Error(`Error parsing HTML: ${parseErr.message}`), null);
+        }
+    });
+}
+
 // Process YouTube video with yt-dlp directly
 function processYouTube(pattern, youtubeUrl, includeTimestamps, strategy, callback) {
     console.log(`Fetching YouTube transcript with yt-dlp: ${youtubeUrl}`);
@@ -372,7 +610,7 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const data = JSON.parse(body);
-                const { message, pattern, strategy, isYouTube, includeTimestamps } = data;
+                const { message, pattern, strategy, isYouTube, isUrl, includeTimestamps } = data;
 
                 if (!pattern || !message) {
                     res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -393,6 +631,19 @@ const server = http.createServer((req, res) => {
                             res.end(output);
                         }
                     });
+                } else if (isUrl) {
+                    console.log(`URL request: pattern=${pattern}, url=${message}, strategy=${strategy || 'auto'}`);
+
+                    processURL(pattern, message, strategy, (error, output) => {
+                        if (error) {
+                            console.error('Error:', error.message);
+                            res.writeHead(500, { 'Content-Type': 'text/plain' });
+                            res.end(`Error: ${error.message}`);
+                        } else {
+                            res.writeHead(200, { 'Content-Type': 'text/plain' });
+                            res.end(output);
+                        }
+                    });
                 } else {
                     console.log(`Text request: pattern=${pattern}, strategy=${strategy || 'auto'}, message length=${message.length}`);
 
@@ -401,7 +652,7 @@ const server = http.createServer((req, res) => {
                     if (pattern === 'write_essay') {
                         variables.author_name = 'George Orwell'; // Default author
                     }
-                    
+
                     processFabric(pattern, message, strategy, (error, output) => {
                         if (error) {
                             console.error('Error:', error.message);

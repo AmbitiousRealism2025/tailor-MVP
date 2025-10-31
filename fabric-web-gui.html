@@ -647,7 +647,7 @@
             <div class="section">
                 <h2 class="section-title">Input</h2>
 
-                <!-- Toggle between text, YouTube, and Upload -->
+                <!-- Toggle between text, YouTube, URL, and Upload -->
                 <div class="form-group">
                     <label>Input Type:</label>
                     <div class="button-group">
@@ -656,6 +656,9 @@
                         </button>
                         <button class="btn-secondary" id="btnYoutube" onclick="switchInputType('youtube')">
                             🎥 YouTube URL
+                        </button>
+                        <button class="btn-secondary" id="btnUrl" onclick="switchInputType('url')">
+                            🌐 Web URL
                         </button>
                         <button class="btn-secondary" id="btnUpload" onclick="switchInputType('upload')">
                             📄 Upload Document
@@ -678,6 +681,16 @@
                             <input type="checkbox" id="includeTimestamps" style="width: auto; margin-right: 8px;">
                             Include timestamps in transcript
                         </label>
+                    </div>
+                </div>
+
+                <!-- Web URL input (hidden by default) -->
+                <div class="form-group" id="urlInputGroup" style="display: none;">
+                    <label for="webUrl">Web URL:</label>
+                    <input type="text" id="webUrl" placeholder="https://example.com/article" />
+                    <div id="urlStatus" style="margin-top: 10px; font-size: 0.9em; color: #667eea;"></div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <strong>Supported content:</strong> Blog posts, articles, documentation, any web page with text content
                     </div>
                 </div>
 
@@ -1259,21 +1272,24 @@
         let currentInputType = 'text';
         let uploadedFileContent = '';
 
-        // Switch between text, YouTube, and upload input
+        // Switch between text, YouTube, URL, and upload input
         function switchInputType(type) {
             currentInputType = type;
             window.currentInputType = type; // Update global variable for auto-save
 
             const textGroup = document.getElementById('textInputGroup');
             const youtubeGroup = document.getElementById('youtubeInputGroup');
+            const urlGroup = document.getElementById('urlInputGroup');
             const uploadGroup = document.getElementById('uploadInputGroup');
             const btnText = document.getElementById('btnText');
             const btnYoutube = document.getElementById('btnYoutube');
+            const btnUrl = document.getElementById('btnUrl');
             const btnUpload = document.getElementById('btnUpload');
 
             // Hide all groups
             textGroup.style.display = 'none';
             youtubeGroup.style.display = 'none';
+            urlGroup.style.display = 'none';
             uploadGroup.style.display = 'none';
 
             // Reset all buttons
@@ -1281,6 +1297,8 @@
             btnText.style.color = '#333';
             btnYoutube.style.background = '#f0f0f0';
             btnYoutube.style.color = '#333';
+            btnUrl.style.background = '#f0f0f0';
+            btnUrl.style.color = '#333';
             btnUpload.style.background = '#f0f0f0';
             btnUpload.style.color = '#333';
 
@@ -1293,6 +1311,10 @@
                 youtubeGroup.style.display = 'block';
                 btnYoutube.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 btnYoutube.style.color = 'white';
+            } else if (type === 'url') {
+                urlGroup.style.display = 'block';
+                btnUrl.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btnUrl.style.color = 'white';
             } else if (type === 'upload') {
                 uploadGroup.style.display = 'block';
                 btnUpload.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
@@ -1338,7 +1360,7 @@
                 return;
             }
 
-            let input, isYouTube = false, includeTimestamps = false;
+            let input, isYouTube = false, isUrl = false, includeTimestamps = false;
 
             if (currentInputType === 'youtube') {
                 input = document.getElementById('youtubeUrl').value.trim();
@@ -1353,6 +1375,20 @@
                 // Basic YouTube URL validation
                 if (!input.includes('youtube.com') && !input.includes('youtu.be')) {
                     showError('Please enter a valid YouTube URL.');
+                    return;
+                }
+            } else if (currentInputType === 'url') {
+                input = document.getElementById('webUrl').value.trim();
+                isUrl = true;
+
+                if (!input) {
+                    showError('Please enter a web URL.');
+                    return;
+                }
+
+                // Basic URL validation
+                if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                    showError('Please enter a valid URL starting with http:// or https://');
                     return;
                 }
             } else if (currentInputType === 'upload') {
@@ -1380,7 +1416,7 @@
 
             // Calculate time estimate based on content
             const contentLength = input.length;
-            const contentType = isYouTube ? 'youtube' : 'text';
+            const contentType = isYouTube ? 'youtube' : (isUrl ? 'url' : 'text');
             const timeEstimate = calculateTimeEstimate(contentLength, contentType);
 
             // Debug logging
@@ -1428,12 +1464,17 @@
             });
 
             document.getElementById('output').textContent = isYouTube ?
-                'Fetching YouTube transcript...' : 'Processing with AI...';
+                'Fetching YouTube transcript...' : (isUrl ? 'Fetching web page...' : 'Processing with AI...');
 
             try {
                 // Set initial loading state
                 if (isYouTube) {
                     setLoadingState('youtube-fetching');
+                    startAnimatedProgress(3, estimatedDurationMs);
+                } else if (isUrl) {
+                    setLoadingState('url-fetching', {
+                        url: new URL(input).hostname
+                    });
                     startAnimatedProgress(3, estimatedDurationMs);
                 } else {
                     setLoadingState('analyzing', {
@@ -1462,6 +1503,20 @@
                         strategy: strategyDisplayName,
                         timeEstimate: timeEstimate  // Pass calculated time estimate
                     });
+                } else if (isUrl) {
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate URL fetch time
+                    updateLoadingState({
+                        status: 'Web page content extracted',
+                        progress: 40
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    setLoadingState('applying-pattern', {
+                        pattern: patternDisplayName,
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
+                    });
                 } else {
                     setLoadingState('applying-pattern', {
                         pattern: patternDisplayName,
@@ -1480,6 +1535,7 @@
                         pattern: pattern,
                         strategy: strategy || undefined,
                         isYouTube: isYouTube,
+                        isUrl: isUrl,
                         includeTimestamps: includeTimestamps
                     })
                 });
@@ -1528,9 +1584,11 @@
             document.getElementById('pattern').value = '';
             document.getElementById('input').value = '';
             document.getElementById('youtubeUrl').value = '';
+            document.getElementById('webUrl').value = '';
             document.getElementById('includeTimestamps').checked = false;
             document.getElementById('fileUpload').value = '';
             document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('urlStatus').textContent = '';
             uploadedFileContent = '';
             document.getElementById('output').textContent = 'Your results will appear here...';
             document.getElementById('outputButtonGroup').style.display = 'none';
@@ -1766,6 +1824,14 @@
                     tip: 'This usually takes 10-20 seconds depending on video length.',
                     timeEstimate: 'Estimated time: 20-40 seconds'
                 },
+                'url-fetching': {
+                    title: 'Fetching Web Page',
+                    description: `Retrieving content from ${additionalConfig.url || 'website'}...`,
+                    status: 'Downloading web page...',
+                    step: 1,
+                    tip: 'Extracting main content and removing navigation, ads, and sidebars.',
+                    timeEstimate: 'Estimated time: 15-30 seconds'
+                },
                 'analyzing': {
                     title: 'Analyzing Content',
                     description: 'Processing and understanding your content with AI...',
@@ -1818,6 +1884,18 @@
                     estimatedSeconds = 75;
                 } else {
                     estimatedSeconds = 120;
+                }
+            } else if (contentType === 'url') {
+                // URL processing: fetch + extract + process
+                // Add overhead for network fetch and HTML parsing
+                if (contentLength < 500) {
+                    estimatedSeconds = 20;
+                } else if (contentLength < 2000) {
+                    estimatedSeconds = 35;
+                } else if (contentLength < 10000) {
+                    estimatedSeconds = 60;
+                } else {
+                    estimatedSeconds = 90;
                 }
             } else {
                 // Text/upload processing
