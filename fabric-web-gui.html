@@ -146,27 +146,170 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             color: #667eea;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
+            border-radius: 12px;
+            border: 2px solid #e0e6ff;
+            margin: 20px 0;
         }
 
         .loading.active {
             display: block;
         }
 
+        .loading-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border: 4px solid #f0f2ff;
+            border-top: 4px solid #667eea;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 0;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .loading-content {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .loading-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .loading-description {
+            font-size: 0.95em;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .loading-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .pattern-info {
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .strategy-info {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e6ff;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            width: 0%;
+            animation: progressPulse 2s ease-in-out infinite;
+            transition: width 0.3s ease;
+        }
+
+        @keyframes progressPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-step.active {
+            opacity: 1;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .progress-step.completed {
+            opacity: 1;
+            color: #28a745;
+        }
+
+        .progress-step-icon {
+            margin-right: 4px;
+        }
+
+        .time-estimate {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-top: 15px;
+            display: inline-block;
+        }
+
+        .loading-status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #555;
+            border-left: 3px solid #667eea;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading-tips {
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #888;
+            font-style: italic;
         }
 
         .stats {
@@ -254,6 +397,151 @@
             font-size: 0.9em;
             color: #666;
         }
+
+        .recent-patterns {
+            margin-bottom: 20px;
+        }
+
+        .recent-patterns-title {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .recent-patterns-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 32px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .recent-pattern-btn {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .recent-pattern-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .recent-pattern-btn:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            z-index: 1000;
+            max-width: 250px;
+            word-wrap: break-word;
+            margin-bottom: 5px;
+        }
+
+        .no-recent-patterns {
+            color: #999;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* Auto-save indicator styles */
+        .auto-save-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .auto-save-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .draft-restore-notification {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideInDown 0.3s ease;
+        }
+
+        .draft-restore-notification.show {
+            display: flex;
+        }
+
+        .draft-restore-notification .message {
+            flex: 1;
+        }
+
+        .draft-restore-notification .actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .draft-restore-notification button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .draft-restore-notification button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -270,7 +558,7 @@
                     <div class="stat-label">Available Patterns</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">GLM-4.6</div>
+                    <div class="stat-number">GLM-4.7</div>
                     <div class="stat-label">AI Model</div>
                 </div>
                 <div class="stat-card">
@@ -279,8 +567,28 @@
                 </div>
             </div>
 
+            <!-- Draft Restore Notification -->
+            <div class="draft-restore-notification" id="draftRestoreNotification">
+                <div class="message">
+                    <strong>📝 Draft restored!</strong> We found your previous work and restored it for you.
+                </div>
+                <div class="actions">
+                    <button onclick="clearDrafts()">Clear Draft</button>
+                    <button onclick="hideDraftNotification()">Dismiss</button>
+                </div>
+            </div>
+
             <div class="section">
                 <h2 class="section-title">Pattern Selection</h2>
+
+                <!-- Recent Patterns Section -->
+                <div class="recent-patterns">
+                    <div class="recent-patterns-title">🕐 Recent Patterns:</div>
+                    <div class="recent-patterns-list" id="recentPatternsList">
+                        <div class="no-recent-patterns">No recent patterns yet. Process some text to see your history here.</div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="pattern">Choose a Pattern:</label>
                     <select id="pattern" onchange="updateRecommendedStrategy()">
@@ -339,7 +647,7 @@
             <div class="section">
                 <h2 class="section-title">Input</h2>
 
-                <!-- Toggle between text, YouTube, and Upload -->
+                <!-- Toggle between text, YouTube, URL, and Upload -->
                 <div class="form-group">
                     <label>Input Type:</label>
                     <div class="button-group">
@@ -348,6 +656,9 @@
                         </button>
                         <button class="btn-secondary" id="btnYoutube" onclick="switchInputType('youtube')">
                             🎥 YouTube URL
+                        </button>
+                        <button class="btn-secondary" id="btnUrl" onclick="switchInputType('url')">
+                            🌐 Web URL
                         </button>
                         <button class="btn-secondary" id="btnUpload" onclick="switchInputType('upload')">
                             📄 Upload Document
@@ -373,6 +684,16 @@
                     </div>
                 </div>
 
+                <!-- Web URL input (hidden by default) -->
+                <div class="form-group" id="urlInputGroup" style="display: none;">
+                    <label for="webUrl">Web URL:</label>
+                    <input type="text" id="webUrl" placeholder="https://example.com/article" />
+                    <div id="urlStatus" style="margin-top: 10px; font-size: 0.9em; color: #667eea;"></div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <strong>Supported content:</strong> Blog posts, articles, documentation, any web page with text content
+                    </div>
+                </div>
+
                 <!-- Upload input (hidden by default) -->
                 <div class="form-group" id="uploadInputGroup" style="display: none;">
                     <label for="fileUpload">Upload Document:</label>
@@ -388,9 +709,6 @@
                 <div class="button-group">
                     <button class="btn-primary" onclick="processText()">🚀 Process with Fabric</button>
                     <button class="btn-secondary" onclick="clearAll()">🔄 Clear All</button>
-                    <button class="btn-secondary" onclick="copyOutput()">📋 Copy Output</button>
-                    <button class="btn-secondary" id="chainBtn" onclick="showChainDialog()" style="display: none;">🔗 Chain Pattern</button>
-                    <button class="btn-secondary" id="saveBtn" onclick="showSaveDialog()" style="display: none;">💾 Save to Obsidian</button>
                 </div>
             </div>
 
@@ -431,8 +749,42 @@
             <div id="saveOverlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeSaveDialog()"></div>
 
             <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p style="margin-top: 15px;">Processing with AI...</p>
+                <div class="loading-header">
+                    <div class="spinner"></div>
+                </div>
+                <div class="loading-content">
+                    <div class="loading-title" id="loadingTitle">Processing with AI</div>
+                    <div class="loading-description" id="loadingDescription">Please wait while we process your request...</div>
+                    <div class="loading-meta">
+                        <div class="pattern-info" id="loadingPattern">Pattern: Loading...</div>
+                        <div class="strategy-info" id="loadingStrategy">Strategy: Auto</div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-steps" id="progressSteps">
+                            <div class="step active" id="step1">
+                                <div class="step-icon">📥</div>
+                                <div class="step-label">Fetching</div>
+                            </div>
+                            <div class="step" id="step2">
+                                <div class="step-icon">⚡</div>
+                                <div class="step-label">Processing</div>
+                            </div>
+                            <div class="step" id="step3">
+                                <div class="step-icon">✨</div>
+                                <div class="step-label">Refining</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="time-estimate" id="timeEstimate">Estimated time: 30-60 seconds</div>
+                    <div class="loading-status" id="loadingStatus">Initializing...</div>
+                    <div class="loading-tips" id="loadingTips">
+                        <div class="tip-icon">💡</div>
+                        <div class="tip-text" id="tipText">Processing time varies based on content length and complexity.</div>
+                    </div>
+                </div>
             </div>
 
             <div class="error" id="error"></div>
@@ -440,13 +792,286 @@
 
             <div class="output-section">
                 <h2 class="section-title">Output</h2>
+                <div class="button-group" id="outputButtonGroup" style="display: none; margin-bottom: 15px;">
+                    <button class="btn-secondary" id="chainBtn" onclick="showChainDialog()">🔗 Chain Pattern</button>
+                    <button class="btn-secondary" id="copyBtn" onclick="copyOutputFromResults()">📋 Copy</button>
+                    <button class="btn-secondary" id="saveBtn" onclick="showSaveDialog()">💾 Save to Obsidian</button>
+                </div>
                 <div class="output" id="output">Your results will appear here...</div>
             </div>
         </div>
     </div>
 
+    <!-- Auto-save indicator -->
+    <div class="auto-save-indicator" id="autoSaveIndicator">
+        ✅ Draft saved
+    </div>
+
     <script>
+        const VERSION = '0.3.1'; // Updated time estimates for large files
         const API_BASE = 'http://localhost:3000';
+
+        console.log(`🎨 Tailor MVP v${VERSION} - Improved time estimates loaded`);
+
+        // Auto-save Drafts functionality
+        const DRAFT_TEXT_KEY = 'tailor-draft-text';
+        const DRAFT_YOUTUBE_KEY = 'tailor-draft-youtube';
+        const DRAFT_PATTERN_KEY = 'tailor-draft-pattern';
+        const DRAFT_STRATEGY_KEY = 'tailor-draft-strategy';
+        const DRAFT_INPUT_TYPE_KEY = 'tailor-draft-input-type';
+        const AUTO_SAVE_DELAY = 300; // 300ms debounce delay
+
+        let autoSaveTimeout = null;
+        let hasRestoredDraft = false;
+
+        // Save draft to localStorage
+        function saveDraft() {
+            try {
+                const currentInputType = window.currentInputType || 'text';
+                const pattern = document.getElementById('pattern').value;
+                const strategy = document.getElementById('strategy').value;
+
+                let draftData = {
+                    inputType: currentInputType,
+                    pattern: pattern,
+                    strategy: strategy,
+                    timestamp: new Date().toISOString()
+                };
+
+                if (currentInputType === 'text') {
+                    const textInput = document.getElementById('input').value;
+                    if (textInput.trim()) {
+                        localStorage.setItem(DRAFT_TEXT_KEY, textInput);
+                        draftData.hasText = true;
+                    } else {
+                        localStorage.removeItem(DRAFT_TEXT_KEY);
+                        draftData.hasText = false;
+                    }
+                } else if (currentInputType === 'youtube') {
+                    const youtubeUrl = document.getElementById('youtubeUrl').value;
+                    if (youtubeUrl.trim()) {
+                        localStorage.setItem(DRAFT_YOUTUBE_KEY, youtubeUrl);
+                        draftData.hasYoutube = true;
+                    } else {
+                        localStorage.removeItem(DRAFT_YOUTUBE_KEY);
+                        draftData.hasYoutube = false;
+                    }
+                }
+
+                // Save pattern and strategy
+                if (pattern) {
+                    localStorage.setItem(DRAFT_PATTERN_KEY, pattern);
+                } else {
+                    localStorage.removeItem(DRAFT_PATTERN_KEY);
+                }
+
+                if (strategy) {
+                    localStorage.setItem(DRAFT_STRATEGY_KEY, strategy);
+                } else {
+                    localStorage.removeItem(DRAFT_STRATEGY_KEY);
+                }
+
+                localStorage.setItem(DRAFT_INPUT_TYPE_KEY, currentInputType);
+
+                // Show auto-save indicator
+                showAutoSaveIndicator();
+
+            } catch (error) {
+                console.warn('Failed to save draft:', error);
+                // Handle localStorage quota exceeded
+                if (error.name === 'QuotaExceededError') {
+                    clearOldDrafts();
+                }
+            }
+        }
+
+        // Debounced save function
+        function debouncedSave() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(saveDraft, AUTO_SAVE_DELAY);
+        }
+
+        // Show auto-save indicator
+        function showAutoSaveIndicator() {
+            const indicator = document.getElementById('autoSaveIndicator');
+            indicator.classList.add('show');
+
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        // Restore draft from localStorage
+        function restoreDraft() {
+            try {
+                const textDraft = localStorage.getItem(DRAFT_TEXT_KEY);
+                const youtubeDraft = localStorage.getItem(DRAFT_YOUTUBE_KEY);
+                const patternDraft = localStorage.getItem(DRAFT_PATTERN_KEY);
+                const strategyDraft = localStorage.getItem(DRAFT_STRATEGY_KEY);
+                const inputTypeDraft = localStorage.getItem(DRAFT_INPUT_TYPE_KEY);
+
+                let hasDraft = false;
+                let restoredFields = [];
+
+                // Restore input type first
+                if (inputTypeDraft) {
+                    switchInputType(inputTypeDraft);
+                }
+
+                // Restore text content
+                if (textDraft && textDraft.trim()) {
+                    document.getElementById('input').value = textDraft;
+                    hasDraft = true;
+                    restoredFields.push('text');
+                }
+
+                // Restore YouTube URL
+                if (youtubeDraft && youtubeDraft.trim()) {
+                    document.getElementById('youtubeUrl').value = youtubeDraft;
+                    hasDraft = true;
+                    restoredFields.push('YouTube URL');
+                }
+
+                // Restore pattern
+                if (patternDraft) {
+                    document.getElementById('pattern').value = patternDraft;
+                    updateRecommendedStrategy();
+                    hasDraft = true;
+                    restoredFields.push('pattern');
+                }
+
+                // Restore strategy
+                if (strategyDraft) {
+                    document.getElementById('strategy').value = strategyDraft;
+                    hasDraft = true;
+                    restoredFields.push('strategy');
+                }
+
+                // Show notification if we restored something
+                if (hasDraft && !hasRestoredDraft) {
+                    hasRestoredDraft = true;
+                    showDraftNotification(restoredFields);
+                }
+
+                return hasDraft;
+            } catch (error) {
+                console.warn('Failed to restore draft:', error);
+                return false;
+            }
+        }
+
+        // Show draft restore notification
+        function showDraftNotification(restoredFields) {
+            const notification = document.getElementById('draftRestoreNotification');
+            const messageElement = notification.querySelector('.message');
+
+            const fieldsText = restoredFields.join(', ');
+            messageElement.innerHTML = `<strong>📝 Draft restored!</strong> We found your previous ${fieldsText} and restored it for you.`;
+
+            notification.classList.add('show');
+        }
+
+        // Hide draft notification
+        function hideDraftNotification() {
+            const notification = document.getElementById('draftRestoreNotification');
+            notification.classList.remove('show');
+        }
+
+        // Clear all drafts
+        function clearDrafts() {
+            try {
+                localStorage.removeItem(DRAFT_TEXT_KEY);
+                localStorage.removeItem(DRAFT_YOUTUBE_KEY);
+                localStorage.removeItem(DRAFT_PATTERN_KEY);
+                localStorage.removeItem(DRAFT_STRATEGY_KEY);
+                localStorage.removeItem(DRAFT_INPUT_TYPE_KEY);
+
+                hideDraftNotification();
+                showSuccess('Drafts cleared successfully!');
+            } catch (error) {
+                console.warn('Failed to clear drafts:', error);
+                showError('Failed to clear drafts');
+            }
+        }
+
+        // Clear specific field draft when field is manually cleared
+        function clearFieldDraft(fieldType) {
+            try {
+                if (fieldType === 'text') {
+                    localStorage.removeItem(DRAFT_TEXT_KEY);
+                } else if (fieldType === 'youtube') {
+                    localStorage.removeItem(DRAFT_YOUTUBE_KEY);
+                } else if (fieldType === 'pattern') {
+                    localStorage.removeItem(DRAFT_PATTERN_KEY);
+                } else if (fieldType === 'strategy') {
+                    localStorage.removeItem(DRAFT_STRATEGY_KEY);
+                }
+            } catch (error) {
+                console.warn('Failed to clear field draft:', error);
+            }
+        }
+
+        // Clear old drafts to handle quota issues
+        function clearOldDrafts() {
+            try {
+                // Remove old/invalid draft data
+                const keys = [
+                    DRAFT_TEXT_KEY,
+                    DRAFT_YOUTUBE_KEY,
+                    DRAFT_PATTERN_KEY,
+                    DRAFT_STRATEGY_KEY,
+                    DRAFT_INPUT_TYPE_KEY
+                ];
+
+                keys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    if (value && (value.length > 100000 || value.trim() === '')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            } catch (error) {
+                console.warn('Failed to clear old drafts:', error);
+            }
+        }
+
+        // Set up auto-save event listeners
+        function setupAutoSave() {
+            // Text input auto-save
+            const textInput = document.getElementById('input');
+            if (textInput) {
+                textInput.addEventListener('input', debouncedSave);
+                textInput.addEventListener('blur', saveDraft);
+            }
+
+            // YouTube URL auto-save
+            const youtubeInput = document.getElementById('youtubeUrl');
+            if (youtubeInput) {
+                youtubeInput.addEventListener('input', debouncedSave);
+                youtubeInput.addEventListener('blur', saveDraft);
+            }
+
+            // Pattern selection auto-save
+            const patternSelect = document.getElementById('pattern');
+            if (patternSelect) {
+                patternSelect.addEventListener('change', () => {
+                    debouncedSave();
+                    updateRecommendedStrategy();
+                });
+            }
+
+            // Strategy selection auto-save
+            const strategySelect = document.getElementById('strategy');
+            if (strategySelect) {
+                strategySelect.addEventListener('change', debouncedSave);
+            }
+
+            // Clear drafts when "Clear All" is clicked
+            const originalClearAll = clearAll;
+            clearAll = function() {
+                clearDrafts();
+                originalClearAll();
+            };
+        }
 
         // Strategy mapping based on pattern names
         const strategyMap = {
@@ -647,20 +1272,24 @@
         let currentInputType = 'text';
         let uploadedFileContent = '';
 
-        // Switch between text, YouTube, and upload input
+        // Switch between text, YouTube, URL, and upload input
         function switchInputType(type) {
             currentInputType = type;
+            window.currentInputType = type; // Update global variable for auto-save
 
             const textGroup = document.getElementById('textInputGroup');
             const youtubeGroup = document.getElementById('youtubeInputGroup');
+            const urlGroup = document.getElementById('urlInputGroup');
             const uploadGroup = document.getElementById('uploadInputGroup');
             const btnText = document.getElementById('btnText');
             const btnYoutube = document.getElementById('btnYoutube');
+            const btnUrl = document.getElementById('btnUrl');
             const btnUpload = document.getElementById('btnUpload');
 
             // Hide all groups
             textGroup.style.display = 'none';
             youtubeGroup.style.display = 'none';
+            urlGroup.style.display = 'none';
             uploadGroup.style.display = 'none';
 
             // Reset all buttons
@@ -668,6 +1297,8 @@
             btnText.style.color = '#333';
             btnYoutube.style.background = '#f0f0f0';
             btnYoutube.style.color = '#333';
+            btnUrl.style.background = '#f0f0f0';
+            btnUrl.style.color = '#333';
             btnUpload.style.background = '#f0f0f0';
             btnUpload.style.color = '#333';
 
@@ -680,11 +1311,18 @@
                 youtubeGroup.style.display = 'block';
                 btnYoutube.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 btnYoutube.style.color = 'white';
+            } else if (type === 'url') {
+                urlGroup.style.display = 'block';
+                btnUrl.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                btnUrl.style.color = 'white';
             } else if (type === 'upload') {
                 uploadGroup.style.display = 'block';
                 btnUpload.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 btnUpload.style.color = 'white';
             }
+
+            // Trigger auto-save when switching input types
+            debouncedSave();
         }
 
         // Handle file upload
@@ -722,7 +1360,7 @@
                 return;
             }
 
-            let input, isYouTube = false, includeTimestamps = false;
+            let input, isYouTube = false, isUrl = false, includeTimestamps = false;
 
             if (currentInputType === 'youtube') {
                 input = document.getElementById('youtubeUrl').value.trim();
@@ -737,6 +1375,20 @@
                 // Basic YouTube URL validation
                 if (!input.includes('youtube.com') && !input.includes('youtu.be')) {
                     showError('Please enter a valid YouTube URL.');
+                    return;
+                }
+            } else if (currentInputType === 'url') {
+                input = document.getElementById('webUrl').value.trim();
+                isUrl = true;
+
+                if (!input) {
+                    showError('Please enter a web URL.');
+                    return;
+                }
+
+                // Basic URL validation
+                if (!input.startsWith('http://') && !input.startsWith('https://')) {
+                    showError('Please enter a valid URL starting with http:// or https://');
                     return;
                 }
             } else if (currentInputType === 'upload') {
@@ -757,10 +1409,122 @@
 
             hideMessages();
             showLoading(true);
+
+            // Enhanced loading initialization
+            const patternDisplayName = pattern.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const strategyDisplayName = strategy === 'auto' ? 'Auto' : strategy.charAt(0).toUpperCase() + strategy.slice(1);
+
+            // Calculate time estimate based on content
+            const contentLength = input.length;
+            const contentType = isYouTube ? 'youtube' : (isUrl ? 'url' : 'text');
+            const timeEstimate = calculateTimeEstimate(contentLength, contentType);
+
+            // Debug logging
+            console.log(`📊 Content length: ${contentLength} chars (${(contentLength/1024).toFixed(2)}KB)`);
+            console.log(`⏱️ Time estimate: ${timeEstimate}`);
+
+            // Calculate estimated duration in milliseconds for progress bar
+            let estimatedDurationMs;
+            if (contentLength < 500) {
+                estimatedDurationMs = 15000;
+            } else if (contentLength < 2000) {
+                estimatedDurationMs = 30000;
+            } else if (contentLength < 10000) {
+                estimatedDurationMs = 60000;
+            } else if (contentLength < 50000) {
+                estimatedDurationMs = 120000;
+            } else {
+                estimatedDurationMs = 180000;
+            }
+
+            if (isYouTube) {
+                estimatedDurationMs = Math.max(estimatedDurationMs, 45000); // Minimum 45s for YouTube
+            }
+
+            // Calculate file size category for display
+            let sizeCategory = '';
+            if (contentLength < 500) {
+                sizeCategory = 'Small file';
+            } else if (contentLength < 2000) {
+                sizeCategory = 'Medium file';
+            } else if (contentLength < 10000) {
+                sizeCategory = 'Large file';
+            } else if (contentLength < 50000) {
+                sizeCategory = 'Very large file';
+            } else {
+                sizeCategory = 'Massive file';
+            }
+
+            // Initialize enhanced loading state
+            updateLoadingState({
+                pattern: patternDisplayName,
+                strategy: strategyDisplayName,
+                timeEstimate: timeEstimate,
+                tip: `${sizeCategory} (${Math.round(contentLength / 1024 * 10) / 10}KB) - Processing time scales with content size.`
+            });
+
             document.getElementById('output').textContent = isYouTube ?
-                'Fetching YouTube transcript...' : 'Processing with AI...';
+                'Fetching YouTube transcript...' : (isUrl ? 'Fetching web page...' : 'Processing with AI...');
 
             try {
+                // Set initial loading state
+                if (isYouTube) {
+                    setLoadingState('youtube-fetching');
+                    startAnimatedProgress(3, estimatedDurationMs);
+                } else if (isUrl) {
+                    setLoadingState('url-fetching', {
+                        url: new URL(input).hostname
+                    });
+                    startAnimatedProgress(3, estimatedDurationMs);
+                } else {
+                    setLoadingState('analyzing', {
+                        pattern: patternDisplayName,
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass the calculated time estimate
+                    });
+                    startAnimatedProgress(3, estimatedDurationMs);
+                }
+
+                // Add delay to show initial loading state
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Update to pattern application state
+                if (isYouTube) {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate YouTube fetch time
+                    updateLoadingState({
+                        status: 'Transcript fetched successfully',
+                        progress: 40
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    setLoadingState('applying-pattern', {
+                        pattern: patternDisplayName,
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
+                    });
+                } else if (isUrl) {
+                    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate URL fetch time
+                    updateLoadingState({
+                        status: 'Web page content extracted',
+                        progress: 40
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    setLoadingState('applying-pattern', {
+                        pattern: patternDisplayName,
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
+                    });
+                } else {
+                    setLoadingState('applying-pattern', {
+                        pattern: patternDisplayName,
+                        strategy: strategyDisplayName,
+                        timeEstimate: timeEstimate  // Pass calculated time estimate
+                    });
+                }
+
                 const response = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: {
@@ -771,29 +1535,42 @@
                         pattern: pattern,
                         strategy: strategy || undefined,
                         isYouTube: isYouTube,
+                        isUrl: isUrl,
                         includeTimestamps: includeTimestamps
                     })
                 });
 
                 if (!response.ok) {
                     const errorText = await response.text();
+                    setLoadingState('error');
                     throw new Error(`Server error (${response.status}): ${errorText}`);
                 }
+
+                // Update to finalizing state
+                setLoadingState('finalizing');
+                updateProgressBar(90);
 
                 const result = await response.text();
 
                 // Check if result is empty or just whitespace
                 if (!result || !result.trim()) {
+                    setLoadingState('error');
                     throw new Error('Received empty response from server. Check if API keys are configured correctly.');
                 }
+
+                // Complete the progress bar
+                updateProgressBar(100);
+
+                // Brief pause to show completion
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 document.getElementById('output').textContent = result;
                 showSuccess('Processing complete!');
 
-                // Show the chain and save buttons after successful processing
-                document.getElementById('chainBtn').style.display = 'inline-block';
-                document.getElementById('saveBtn').style.display = 'inline-block';
+                // Show the output button group after successful processing
+                document.getElementById('outputButtonGroup').style.display = 'flex';
             } catch (error) {
+                setLoadingState('error');
                 showError(`Error: ${error.message}`);
                 document.getElementById('output').textContent = 'Error occurred. See message above.';
                 console.error('Full error:', error);
@@ -807,37 +1584,358 @@
             document.getElementById('pattern').value = '';
             document.getElementById('input').value = '';
             document.getElementById('youtubeUrl').value = '';
+            document.getElementById('webUrl').value = '';
             document.getElementById('includeTimestamps').checked = false;
             document.getElementById('fileUpload').value = '';
             document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('urlStatus').textContent = '';
             uploadedFileContent = '';
             document.getElementById('output').textContent = 'Your results will appear here...';
-            document.getElementById('chainBtn').style.display = 'none';
-            document.getElementById('saveBtn').style.display = 'none';
+            document.getElementById('outputButtonGroup').style.display = 'none';
             hideMessages();
         }
 
-        // Copy output to clipboard
-        async function copyOutput() {
+        // Copy output to clipboard (from results section)
+        async function copyOutputFromResults() {
             const output = document.getElementById('output').textContent;
 
-            if (output === 'Your results will appear here...' || output === 'Processing...') {
+            if (output === 'Your results will appear here...' || output === 'Processing...' || output === 'Error occurred. See message above.') {
                 showError('No output to copy yet.');
                 return;
             }
 
             try {
-                await navigator.clipboard.writeText(output);
-                showSuccess('Output copied to clipboard!');
+                // Use modern Clipboard API if available
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(output);
+                    showSuccess('✅ Output copied to clipboard!');
+                } else {
+                    // Fallback for older browsers
+                    copyToClipboardFallback(output);
+                    showSuccess('✅ Output copied to clipboard!');
+                }
             } catch (error) {
-                showError('Failed to copy to clipboard.');
+                console.error('Clipboard copy failed:', error);
+                // Try fallback method
+                try {
+                    copyToClipboardFallback(output);
+                    showSuccess('✅ Output copied to clipboard!');
+                } catch (fallbackError) {
+                    console.error('Fallback clipboard copy failed:', fallbackError);
+                    showError('❌ Failed to copy to clipboard. Please copy manually.');
+                }
             }
         }
 
-        // UI Helper functions
+        // Fallback clipboard copy method for older browsers
+        function copyToClipboardFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            if (!successful) {
+                throw new Error('Failed to copy text');
+            }
+        }
+
+        // Legacy copy function (deprecated but kept for compatibility)
+        async function copyOutput() {
+            copyOutputFromResults();
+        }
+
+        // Enhanced Loading State Management
+        let currentLoadingState = 'idle';
+        let loadingProgressInterval = null;
+        let loadingStartTime = null;
+        let currentProgressStep = 0;
+
+        // Main showLoading function - maintains backward compatibility
         function showLoading(show) {
             const loading = document.getElementById('loading');
             loading.className = show ? 'loading active' : 'loading';
+
+            if (show) {
+                loadingStartTime = Date.now();
+                resetLoadingState();
+                updateLoadingState({
+                    title: 'Processing with AI',
+                    description: 'Please wait while we process your request...',
+                    status: 'Initializing...',
+                    step: 1
+                });
+            } else {
+                clearInterval(loadingProgressInterval);
+                loadingProgressInterval = null;
+                currentLoadingState = 'idle';
+                currentProgressStep = 0;
+            }
+        }
+
+        // Enhanced loading state control function
+        function updateLoadingState(config) {
+            if (document.getElementById('loading').className !== 'loading active') {
+                return; // Don't update if loading is not active
+            }
+
+            // Update title
+            if (config.title) {
+                document.getElementById('loadingTitle').textContent = config.title;
+            }
+
+            // Update description
+            if (config.description) {
+                document.getElementById('loadingDescription').textContent = config.description;
+            }
+
+            // Update pattern and strategy
+            if (config.pattern) {
+                document.getElementById('loadingPattern').textContent = `Pattern: ${config.pattern}`;
+            }
+
+            if (config.strategy) {
+                document.getElementById('loadingStrategy').textContent = `Strategy: ${config.strategy}`;
+            }
+
+            // Update status
+            if (config.status) {
+                document.getElementById('loadingStatus').textContent = config.status;
+            }
+
+            // Update progress steps
+            if (config.step !== undefined) {
+                updateProgressStep(config.step);
+            }
+
+            // Update progress bar
+            if (config.progress !== undefined) {
+                updateProgressBar(config.progress);
+            }
+
+            // Update time estimate
+            if (config.timeEstimate) {
+                document.getElementById('timeEstimate').textContent = config.timeEstimate;
+            }
+
+            // Update tips
+            if (config.tip) {
+                document.getElementById('tipText').textContent = config.tip;
+            }
+        }
+
+        // Update progress step indicators
+        function updateProgressStep(stepNumber) {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                if (index < stepNumber - 1) {
+                    step.classList.add('completed');
+                    step.classList.remove('active');
+                } else if (index === stepNumber - 1) {
+                    step.classList.add('active');
+                    step.classList.remove('completed');
+                } else {
+                    step.classList.remove('active', 'completed');
+                }
+            });
+            currentProgressStep = stepNumber;
+        }
+
+        // Update progress bar fill
+        function updateProgressBar(percentage) {
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+        }
+
+        // Reset loading state to defaults
+        function resetLoadingState() {
+            document.getElementById('loadingTitle').textContent = 'Processing with AI';
+            document.getElementById('loadingDescription').textContent = 'Please wait while we process your request...';
+            document.getElementById('loadingPattern').textContent = 'Pattern: Loading...';
+            document.getElementById('loadingStrategy').textContent = 'Strategy: Auto';
+            document.getElementById('loadingStatus').textContent = 'Initializing...';
+            document.getElementById('timeEstimate').textContent = 'Estimated time: 30-60 seconds';
+            document.getElementById('tipText').textContent = 'Processing time varies based on content length and complexity.';
+            document.getElementById('progressFill').style.width = '0%';
+
+            // Reset steps
+            const steps = document.querySelectorAll('.step');
+            steps.forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+        }
+
+        // Start animated progress for long-running operations
+        function startAnimatedProgress(totalSteps = 3, durationMs = 30000) {
+            let progress = 0;
+            const stepDuration = durationMs / totalSteps;
+
+            clearInterval(loadingProgressInterval);
+
+            loadingProgressInterval = setInterval(() => {
+                // Slow down progress as it approaches the cap
+                // This prevents the "stuck at 90%" feeling
+                let increment = 100 / (durationMs / 100); // Base increment every 100ms
+
+                if (progress > 60) {
+                    // Slow down to 50% speed after 60%
+                    increment *= 0.5;
+                }
+                if (progress > 70) {
+                    // Slow down to 25% speed after 70%
+                    increment *= 0.5;
+                }
+
+                progress += increment;
+
+                // Cap at 80% until actual completion (more conservative than 95%)
+                const cappedProgress = Math.min(progress, 80);
+                updateProgressBar(cappedProgress);
+
+                // Auto-advance steps based on progress
+                if (cappedProgress > 60 && currentProgressStep < 3) {
+                    updateProgressStep(3);
+                } else if (cappedProgress > 30 && currentProgressStep < 2) {
+                    updateProgressStep(2);
+                }
+
+                // Stop incrementing at 80% and wait for actual completion
+                if (cappedProgress >= 80) {
+                    clearInterval(loadingProgressInterval);
+                    loadingProgressInterval = null;
+                }
+            }, 100);
+        }
+
+        // Set loading state for specific processing stages
+        function setLoadingState(state, additionalConfig = {}) {
+            const states = {
+                'youtube-fetching': {
+                    title: 'Fetching YouTube Content',
+                    description: 'Retrieving and processing video information...',
+                    status: 'Connecting to YouTube...',
+                    step: 1,
+                    tip: 'This usually takes 10-20 seconds depending on video length.',
+                    timeEstimate: 'Estimated time: 20-40 seconds'
+                },
+                'url-fetching': {
+                    title: 'Fetching Web Page',
+                    description: `Retrieving content from ${additionalConfig.url || 'website'}...`,
+                    status: 'Downloading web page...',
+                    step: 1,
+                    tip: 'Extracting main content and removing navigation, ads, and sidebars.',
+                    timeEstimate: 'Estimated time: 15-30 seconds'
+                },
+                'analyzing': {
+                    title: 'Analyzing Content',
+                    description: 'Processing and understanding your content with AI...',
+                    status: 'Running AI analysis...',
+                    step: 2,
+                    tip: 'AI is carefully analyzing your content to provide the best results.',
+                    timeEstimate: 'Estimated time: 30-60 seconds'
+                },
+                'applying-pattern': {
+                    title: 'Applying Pattern',
+                    description: `Applying ${additionalConfig.pattern || 'selected'} pattern to transform content...`,
+                    status: 'Transforming content...',
+                    step: 2,
+                    tip: 'The AI is restructuring your content according to the selected pattern.',
+                    timeEstimate: 'Estimated time: 15-30 seconds'
+                },
+                'finalizing': {
+                    title: 'Finalizing Results',
+                    description: 'Polishing and optimizing your output...',
+                    status: 'Final touches...',
+                    step: 3,
+                    tip: 'Almost done! Making sure everything looks perfect.',
+                    timeEstimate: 'Estimated time: 5-10 seconds'
+                },
+                'error': {
+                    title: 'Processing Error',
+                    description: 'Something went wrong while processing your request.',
+                    status: 'Error occurred',
+                    tip: 'Please try again or check your input content.',
+                    timeEstimate: ''
+                }
+            };
+
+            const config = states[state] || states['analyzing'];
+            updateLoadingState({ ...config, ...additionalConfig });
+        }
+
+        // Calculate time estimate based on content length and type
+        function calculateTimeEstimate(contentLength, contentType = 'text') {
+            // Tiered time estimates based on file size
+            let estimatedSeconds;
+
+            if (contentType === 'youtube') {
+                // YouTube has additional fetch overhead
+                if (contentLength < 1000) {
+                    estimatedSeconds = 30;
+                } else if (contentLength < 5000) {
+                    estimatedSeconds = 45;
+                } else if (contentLength < 15000) {
+                    estimatedSeconds = 75;
+                } else {
+                    estimatedSeconds = 120;
+                }
+            } else if (contentType === 'url') {
+                // URL processing: fetch + extract + process
+                // Add overhead for network fetch and HTML parsing
+                if (contentLength < 500) {
+                    estimatedSeconds = 20;
+                } else if (contentLength < 2000) {
+                    estimatedSeconds = 35;
+                } else if (contentLength < 10000) {
+                    estimatedSeconds = 60;
+                } else {
+                    estimatedSeconds = 90;
+                }
+            } else {
+                // Text/upload processing
+                if (contentLength < 500) {
+                    // Small: under 500 chars (~100 words)
+                    estimatedSeconds = 15;
+                } else if (contentLength < 2000) {
+                    // Medium: 500-2000 chars (~100-400 words)
+                    estimatedSeconds = 30;
+                } else if (contentLength < 10000) {
+                    // Large: 2000-10000 chars (~400-2000 words)
+                    estimatedSeconds = 60;
+                } else if (contentLength < 50000) {
+                    // Very Large: 10k-50k chars (~2000-10000 words)
+                    estimatedSeconds = 120;
+                } else {
+                    // Massive: 50k+ chars (10k+ words)
+                    estimatedSeconds = 180;
+                }
+            }
+
+            // Add buffer range (±20%)
+            const rangeStart = Math.ceil(estimatedSeconds * 0.8);
+            const rangeEnd = Math.ceil(estimatedSeconds * 1.2);
+
+            // Format as minutes if over 60 seconds
+            if (estimatedSeconds >= 60) {
+                const minStart = Math.floor(rangeStart / 60);
+                const minEnd = Math.ceil(rangeEnd / 60);
+                const secStart = rangeStart % 60;
+                const secEnd = rangeEnd % 60;
+
+                if (minStart === minEnd) {
+                    return `Estimated time: ${minStart}:${String(secStart).padStart(2, '0')}-${minEnd}:${String(secEnd).padStart(2, '0')} min`;
+                } else {
+                    return `Estimated time: ${minStart}-${minEnd} minutes`;
+                }
+            }
+
+            return `Estimated time: ${rangeStart}-${rangeEnd} seconds`;
         }
 
         function showError(message) {
@@ -890,9 +1988,61 @@
             closeChainDialog();
             hideMessages();
             showLoading(true);
+
+            // Enhanced loading for chain processing
+            const patternDisplayName = chainPattern.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const contentLength = currentOutput.length;
+            const timeEstimate = calculateTimeEstimate(contentLength, 'text');
+
+            // Calculate estimated duration for progress bar
+            let estimatedDurationMs;
+            if (contentLength < 500) {
+                estimatedDurationMs = 15000;
+            } else if (contentLength < 2000) {
+                estimatedDurationMs = 30000;
+            } else if (contentLength < 10000) {
+                estimatedDurationMs = 60000;
+            } else if (contentLength < 50000) {
+                estimatedDurationMs = 120000;
+            } else {
+                estimatedDurationMs = 180000;
+            }
+
+            // Initialize chain loading state
+            updateLoadingState({
+                title: 'Chaining Pattern',
+                description: `Applying ${patternDisplayName} to your previous output...`,
+                pattern: patternDisplayName,
+                strategy: 'Chain Processing',
+                timeEstimate: timeEstimate,
+                status: 'Preparing chain operation...'
+            });
+
             document.getElementById('output').textContent = `Chaining with ${chainPattern}...`;
 
             try {
+                // Start with analyzing state
+                setLoadingState('analyzing', {
+                    title: 'Analyzing Previous Output',
+                    description: 'Processing your existing content for chaining...',
+                    pattern: patternDisplayName,
+                    strategy: 'Chain Processing'
+                });
+                startAnimatedProgress(3, estimatedDurationMs);
+
+                // Add delay to show initial state
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Move to pattern application
+                setLoadingState('applying-pattern', {
+                    title: 'Applying Chain Pattern',
+                    description: `Transforming content with ${patternDisplayName} pattern...`,
+                    pattern: patternDisplayName,
+                    strategy: 'Chain Processing'
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
                 const response = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
                     headers: {
@@ -907,21 +2057,37 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
+                    setLoadingState('error');
                     throw new Error(`Server error (${response.status}): ${errorText}`);
                 }
+
+                // Update to finalizing state
+                setLoadingState('finalizing', {
+                    title: 'Finalizing Chain Output',
+                    description: 'Completing pattern chain operation...'
+                });
+                updateProgressBar(90);
 
                 const result = await response.text();
 
                 if (!result || !result.trim()) {
+                    setLoadingState('error');
                     throw new Error('Received empty response from server.');
                 }
+
+                // Complete the progress bar
+                updateProgressBar(100);
+
+                // Brief pause to show completion
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 document.getElementById('output').textContent = result;
                 showSuccess(`Pattern chain complete! (${chainPattern})`);
 
-                // Keep the chain button visible for further chaining
-                document.getElementById('chainBtn').style.display = 'inline-block';
+                // Keep the output button group visible for further operations
+                document.getElementById('outputButtonGroup').style.display = 'flex';
             } catch (error) {
+                setLoadingState('error');
                 showError(`Chain error: ${error.message}`);
                 document.getElementById('output').textContent = currentOutput; // Restore previous output
                 console.error('Full error:', error);
@@ -970,6 +2136,16 @@
             const strategy = document.getElementById('strategy').value;
             const inputType = currentInputType;
             const youtubeUrl = inputType === 'youtube' ? document.getElementById('youtubeUrl').value : null;
+            
+            // Handle uploaded file name
+            let uploadedFileName = null;
+            if (inputType === 'upload') {
+                const fileInput = document.getElementById('fileUpload');
+                if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                    uploadedFileName = fileInput.files[0].name;
+                }
+            }
+            
             const fileName = inputType === 'upload' ? uploadedFileName : null;
 
             // Parse custom tags
@@ -990,6 +2166,24 @@
             try {
                 showLoading(true);
 
+                // Enhanced loading for save operation
+                updateLoadingState({
+                    title: 'Saving to Obsidian',
+                    description: 'Saving your processed content to your Obsidian vault...',
+                    pattern: 'Save Operation',
+                    strategy: 'Local Storage',
+                    timeEstimate: 'Estimated time: 2-5 seconds',
+                    status: 'Preparing save data...'
+                });
+
+                // Brief delay to show loading state
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                updateLoadingState({
+                    status: 'Connecting to Obsidian vault...',
+                    progress: 30
+                });
+
                 const response = await fetch(`${API_BASE}/save`, {
                     method: 'POST',
                     headers: {
@@ -999,10 +2193,24 @@
                 });
 
                 if (!response.ok) {
+                    setLoadingState('error');
                     throw new Error(`Save failed: ${response.statusText}`);
                 }
 
+                updateLoadingState({
+                    status: 'Writing file to vault...',
+                    progress: 70
+                });
+
                 const result = await response.json();
+
+                updateLoadingState({
+                    status: 'Save complete!',
+                    progress: 100
+                });
+
+                // Brief pause to show completion
+                await new Promise(resolve => setTimeout(resolve, 300));
 
                 closeSaveDialog();
                 showSuccess(`✅ Saved to Obsidian: ${result.filename}`);
@@ -1012,6 +2220,7 @@
                 document.getElementById('saveTags').value = '';
 
             } catch (error) {
+                setLoadingState('error');
                 showError(`Save error: ${error.message}`);
                 console.error('Full error:', error);
             } finally {
@@ -1022,24 +2231,164 @@
         // Track chained processing
         let lastPattern = null;
 
-        // Update processText to track the pattern
+        // Recent Patterns History Functions
+        const RECENT_PATTERNS_KEY = 'tailor-recent-patterns';
+        const MAX_RECENT_PATTERNS = 10;
+
+        // Load recent patterns from localStorage
+        function loadRecentPatterns() {
+            try {
+                const stored = localStorage.getItem(RECENT_PATTERNS_KEY);
+                return stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                console.warn('Failed to load recent patterns from localStorage:', error);
+                return [];
+            }
+        }
+
+        // Save recent patterns to localStorage
+        function saveRecentPatterns(patterns) {
+            try {
+                localStorage.setItem(RECENT_PATTERNS_KEY, JSON.stringify(patterns));
+            } catch (error) {
+                console.warn('Failed to save recent patterns to localStorage:', error);
+            }
+        }
+
+        // Add pattern to recent history (only after successful processing)
+        function addToRecentPatterns(patternName, patternDescription) {
+            if (!patternName) return;
+
+            let recentPatterns = loadRecentPatterns();
+
+            // Remove if already exists (to handle duplicates)
+            recentPatterns = recentPatterns.filter(p => p.name !== patternName);
+
+            // Add to beginning
+            recentPatterns.unshift({
+                name: patternName,
+                description: patternDescription || '',
+                timestamp: new Date().toISOString()
+            });
+
+            // Limit to max
+            recentPatterns = recentPatterns.slice(0, MAX_RECENT_PATTERNS);
+
+            saveRecentPatterns(recentPatterns);
+            updateRecentPatternsDisplay();
+        }
+
+        // Update the display of recent patterns
+        function updateRecentPatternsDisplay() {
+            const container = document.getElementById('recentPatternsList');
+            const recentPatterns = loadRecentPatterns();
+
+            if (recentPatterns.length === 0) {
+                container.innerHTML = '<div class="no-recent-patterns">No recent patterns yet. Process some text to see your history here.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            recentPatterns.forEach(pattern => {
+                const button = document.createElement('button');
+                button.className = 'recent-pattern-btn';
+                button.textContent = pattern.name;
+
+                // Add tooltip with description if available
+                if (pattern.description) {
+                    button.setAttribute('data-tooltip', pattern.description);
+                }
+
+                // Make it clickable to select the pattern
+                button.onclick = function() {
+                    document.getElementById('pattern').value = pattern.name;
+                    updateRecommendedStrategy();
+
+                    // Visual feedback
+                    this.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                    this.style.color = 'white';
+                    setTimeout(() => {
+                        this.style.background = '';
+                        this.style.color = '';
+                    }, 300);
+                };
+
+                container.appendChild(button);
+            });
+        }
+
+        // Wrap processText to add tracking and recent patterns functionality
         const originalProcessText = processText;
         processText = async function() {
             currentProcessingData.chainedFrom = null;
-            lastPattern = document.getElementById('pattern').value;
-            await originalProcessText();
+            const pattern = document.getElementById('pattern').value;
+            lastPattern = pattern;
+
+            try {
+                await originalProcessText();
+
+                // Only add to recent patterns if processing was successful
+                const output = document.getElementById('output').textContent;
+                if (output && output !== 'Your results will appear here...' &&
+                    output !== 'Error occurred. See message above.' &&
+                    !output.includes('...')) {
+
+                    // Get pattern description from the select option
+                    const select = document.getElementById('pattern');
+                    const selectedOption = select.options[select.selectedIndex];
+                    const description = selectedOption ? selectedOption.textContent.split(' - ').slice(1).join(' - ') : '';
+
+                    addToRecentPatterns(pattern, description);
+                }
+            } catch (error) {
+                // Let original error handling take care of it
+                throw error;
+            }
         };
 
-        // Update executeChain to track the chain
+        // Wrap executeChain to add tracking and recent patterns functionality
         const originalExecuteChain = executeChain;
         executeChain = async function() {
             currentProcessingData.chainedFrom = lastPattern;
-            lastPattern = document.getElementById('chainPattern').value;
-            await originalExecuteChain();
+            const pattern = document.getElementById('chainPattern').value;
+            lastPattern = pattern;
+
+            try {
+                await originalExecuteChain();
+
+                // Add to recent patterns after successful chain
+                const output = document.getElementById('output').textContent;
+                if (output && output !== 'Your results will appear here...' &&
+                    output !== 'Error occurred. See message above.' &&
+                    !output.includes('...')) {
+
+                    // Get pattern description from the chain select option
+                    const select = document.getElementById('chainPattern');
+                    const selectedOption = select.options[select.selectedIndex];
+                    const description = selectedOption ? selectedOption.textContent.split(' - ').slice(1).join(' - ') : '';
+
+                    addToRecentPatterns(pattern, description);
+                }
+            } catch (error) {
+                throw error;
+            }
         };
 
         // Initialize on page load
         loadPatterns();
+        updateRecentPatternsDisplay();
+
+        // Initialize auto-save functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up auto-save event listeners
+            setupAutoSave();
+
+            // Try to restore drafts after a short delay
+            setTimeout(() => {
+                restoreDraft();
+            }, 100);
+        });
     </script>
 </body>
 </html>

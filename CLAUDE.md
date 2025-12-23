@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **fabric-web-gui.html** - Single-page web interface with pattern selection, input handling (text/YouTube/file upload), and output display
 - **fabric-proxy.js** - Node.js HTTP proxy server that bridges the web UI to the Fabric CLI (bypasses issues with Fabric's built-in REST API)
 
-The system processes content through 226+ AI patterns using the GLM-4.6 model with 9 reasoning strategies.
+The system processes content through 226+ AI patterns using the GLM-4.7 model with 9 reasoning strategies.
 
 ## Architecture
 
@@ -174,6 +174,33 @@ See [Development-Plan.md](Development-Plan.md) for detailed roadmap. Priority it
 3. **Pattern Search/Filter** - Quick filtering of pattern dropdown
 4. **Batch Processing** - Process multiple files with same pattern
 
+## Recent Improvements (v0.3.1)
+
+### Generate Frontmatter Pattern Fix
+The `generate_frontmatter` pattern has been updated to prevent content truncation:
+- **Issue**: Model was being lazy and writing "rest of content remains unchanged" instead of copying full content
+- **Fix**: Added CRITICAL OUTPUT REQUIREMENTS section with explicit prohibitions against truncation
+- **Location**: `~/.config/fabric/patterns/generate_frontmatter/system.md`
+- **Result**: Pattern now outputs complete YAML frontmatter + full original content verbatim
+
+### Time Estimate Improvements
+Implemented tiered time estimates based on file size:
+- **Small** (< 500 chars): 15 seconds
+- **Medium** (500-2K chars): 30 seconds
+- **Large** (2K-10K chars): 1 minute
+- **Very Large** (10K-50K chars): 2 minutes
+- **Massive** (50K+ chars): 3 minutes
+
+### Progress Bar Enhancements
+- Caps at 80% instead of 95% to reduce "stuck" perception
+- Progressive slowdown: normal speed → 50% slower after 60% → 75% slower after 70%
+- Smooth continuous motion prevents frozen feeling
+- Scales duration with file size for accurate tracking
+
+### File Size Indicators
+Processing now shows file size category and KB size:
+- Example: "Very large file (48.2KB) - Processing time scales with content size."
+
 ## Troubleshooting
 
 **Proxy won't start:**
@@ -191,3 +218,8 @@ See [Development-Plan.md](Development-Plan.md) for detailed roadmap. Priority it
 **Empty output:**
 - Check Fabric API keys configured: `fabric --setup`
 - Look at proxy server console logs for errors
+
+**Pattern truncates content:**
+- Ensure pattern file is up to date: `~/.config/fabric/patterns/generate_frontmatter/system.md`
+- Pattern should have CRITICAL OUTPUT REQUIREMENTS section
+- Test directly with CLI: `echo "test content" | fabric -p generate_frontmatter --stream`

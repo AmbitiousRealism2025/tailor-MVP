@@ -7,13 +7,22 @@
  */
 
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const cheerio = require('cheerio');
 
 const PORT = 3000;
 const PATTERNS_DIR = path.join(process.env.HOME, '.config/fabric/patterns');
 const OBSIDIAN_VAULT = '/Volumes/Ambitious Realism TB5 2TB/Ambitious Realism';
+
+// GLM-4.7 Coding Plan Configuration (Zhipu AI)
+// Using OpenRouter vendor with GLM model, but overriding API endpoint
+const FABRIC_MODEL = 'OpenRouter|z-ai/glm-4.7'; // Fabric recognizes this model
+const ZHIPU_API_KEY = 'f57581e18df34834b8a091d2eb145f69.gP6KWYFdo5PVKWFm';
+const ZHIPU_API_ENDPOINT = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
+const DISPLAY_MODEL = 'GLM-4.7'; // For display/UI purposes
 
 // Cache for pattern details
 let patternDetailsCache = null;
@@ -82,44 +91,104 @@ async function getPatternDetails() {
     return result;
 }
 
-// Process text with Fabric CLI
-function processFabric(pattern, input, strategy, callback) {
-    // Build arguments for fabric command
-    const args = ['-p', pattern, '--stream'];
+// Process text with Zhipu AI GLM-4.7 Coding Plan API (Anthropic-compatible)
+function processFabric(pattern, input, strategy, callback, variables = {}) {
+    const patternPath = path.join(PATTERNS_DIR, pattern, 'system.md');
 
-    // Note: Strategy support requires running 'fabric --setup' to download strategies
-    // For now, strategies are not used even if provided
-    // TODO: Add strategy support when strategies are configured
+    console.log(`DEBUG: Processing with pattern: ${pattern}, input length: ${input.length}`);
 
-    const fabric = spawn('fabric', args, {
-        env: process.env
-    });
-
-    let output = '';
-    let error = '';
-
-    fabric.stdout.on('data', (data) => {
-        output += data.toString();
-    });
-
-    fabric.stderr.on('data', (data) => {
-        error += data.toString();
-    });
-
-    fabric.on('close', (code) => {
-        if (code !== 0) {
-            callback(new Error(error || `Fabric exited with code ${code}`), null);
-        } else {
-            callback(null, output);
+    // Read the pattern system prompt
+    fs.readFile(patternPath, 'utf8', (err, patternContent) => {
+        if (err) {
+            console.error(`DEBUG: Failed to read pattern: ${err.message}`);
+            return callback(new Error(`Pattern not found: ${pattern}`), null);
         }
-    });
 
-    // Send input to fabric
-    fabric.stdin.write(input);
-    fabric.stdin.end();
+        // Extract the system prompt (skip the "IDENTITY and PURPOSE" header line)
+        const lines = patternContent.split('\n');
+        const systemPrompt = lines.slice(1).join('\n').trim();
+
+        // Prepare the API request
+        const requestData = JSON.stringify({
+            model: 'glm-4.7',
+            stream: true,
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages: [
+                { role: 'user', content: input }
+            ]
+        });
+
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+                'HTTP-Referer': 'https://tailor-mvp.local',
+                'X-Title': 'Tailor MVP'
+            }
+        };
+
+        console.log(`DEBUG: Sending request to ${ZHIPU_API_ENDPOINT}`);
+
+        const req = https.request(ZHIPU_API_ENDPOINT, options, (res) => {
+            let rawOutput = '';
+
+            console.log(`DEBUG: API response status: ${res.statusCode}`);
+
+            if (res.statusCode !== 200) {
+                let errorData = '';
+                res.on('data', (chunk) => { errorData += chunk; });
+                res.on('end', () => {
+                    console.error(`DEBUG: API error response: ${errorData}`);
+                    callback(new Error(`API returned status ${res.statusCode}: ${errorData}`), null);
+                });
+                return;
+            }
+
+            // Accumulate streaming response
+            res.on('data', (chunk) => {
+                rawOutput += chunk.toString();
+            });
+
+            res.on('end', () => {
+                // Parse SSE format and extract content
+                let parsedContent = '';
+                const lines = rawOutput.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6).trim();
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+                            // Extract content from delta (skip reasoning_content)
+                            if (data.choices && data.choices[0]?.delta?.content) {
+                                parsedContent += data.choices[0].delta.content;
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON lines
+                        }
+                    }
+                }
+
+                console.log(`DEBUG: Request completed, content length: ${parsedContent.length} chars`);
+                callback(null, parsedContent);
+            });
+        });
+
+        req.on('error', (err) => {
+            console.error(`DEBUG: Request error: ${err.message}`);
+            callback(new Error(`API request failed: ${err.message}`), null);
+        });
+
+        // Send the request
+        req.write(requestData);
+        req.end();
+    });
 }
 
-// Extract metadata from content using AI
+// Extract metadata from content using GLM-4.7 Coding Plan API
 function extractMetadata(content, callback) {
     const metadataPrompt = `Analyze the following content and extract comprehensive metadata for optimal semantic search and embedding. Return ONLY valid JSON with this exact structure:
 
@@ -147,25 +216,40 @@ Guidelines:
 Content to analyze:
 ${content}`;
 
-    const fabric = spawn('fabric', ['--stream'], {
-        env: process.env
+    // Prepare the API request
+    const requestData = JSON.stringify({
+        model: 'glm-4.7',
+        stream: false,
+        max_tokens: 2048,
+        messages: [
+            { role: 'user', content: metadataPrompt }
+        ]
     });
 
-    let output = '';
-    let error = '';
+    const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+            'HTTP-Referer': 'https://tailor-mvp.local',
+            'X-Title': 'Tailor MVP'
+        }
+    };
 
-    fabric.stdout.on('data', (data) => {
-        output += data.toString();
-    });
+    const req = https.request(ZHIPU_API_ENDPOINT, options, (res) => {
+        let output = '';
 
-    fabric.stderr.on('data', (data) => {
-        error += data.toString();
-    });
+        if (res.statusCode !== 200) {
+            let errorData = '';
+            res.on('data', (chunk) => { errorData += chunk; });
+            res.on('end', () => {
+                callback(new Error(`Metadata API returned status ${res.statusCode}: ${errorData}`), null);
+            });
+            return;
+        }
 
-    fabric.on('close', (code) => {
-        if (code !== 0) {
-            callback(new Error(error || `Metadata extraction failed with code ${code}`), null);
-        } else {
+        res.on('data', (chunk) => { output += chunk.toString(); });
+        res.on('end', () => {
             try {
                 // Try to parse JSON from output
                 const jsonMatch = output.match(/\{[\s\S]*\}/);
@@ -178,12 +262,15 @@ ${content}`;
             } catch (parseError) {
                 callback(new Error(`Failed to parse metadata JSON: ${parseError.message}`), null);
             }
-        }
+        });
     });
 
-    // Send prompt to fabric
-    fabric.stdin.write(metadataPrompt);
-    fabric.stdin.end();
+    req.on('error', (err) => {
+        callback(new Error(`Metadata API request failed: ${err.message}`), null);
+    });
+
+    req.write(requestData);
+    req.end();
 }
 
 // Parse VTT subtitle file to extract text
@@ -195,29 +282,278 @@ function parseVTT(vttContent) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
-        // Skip WEBVTT header, timestamps, and empty lines
+        // Skip WEBVTT header, timestamps, empty lines, and position data
         if (line.startsWith('WEBVTT') ||
             line.match(/^\d{2}:\d{2}:\d{2}/) ||
+            line.match(/-->/) ||
             line === '' ||
             line.startsWith('Kind:') ||
-            line.startsWith('Language:')) {
+            line.startsWith('Language:') ||
+            line.startsWith('align:') ||
+            line.startsWith('position:')) {
             continue;
         }
 
-        // Clean up the text (remove timestamps embedded in text)
-        const cleanText = line.replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, '')
-                              .replace(/<c>/g, ' ')
-                              .replace(/<\/c>/g, '')
-                              .trim();
+        // Skip lines that are just timestamps or metadata
+        if (line.match(/^[\d\s]+$/) || line.match(/^\[Music\]$/)) {
+            continue;
+        }
 
-        // Add text if it's not a duplicate and not just tags
-        if (cleanText && cleanText !== lastText && !cleanText.match(/^align:|^position:/)) {
+        // Clean up the text (remove timestamps embedded in text and HTML tags)
+        let cleanText = line.replace(/<\d{2}:\d{2}:\d{2}\.\d{3}>/g, '')
+                           .replace(/<c[^>]*>/g, '')
+                           .replace(/<\/c>/g, '')
+                           .replace(/<[^>]*>/g, '') // Remove any other HTML tags
+                           .trim();
+
+        // Skip empty lines after cleaning
+        if (!cleanText) {
+            continue;
+        }
+
+        // Add text if it's not a duplicate
+        if (cleanText !== lastText) {
             transcript += cleanText + ' ';
             lastText = cleanText;
         }
     }
 
-    return transcript.trim();
+    // Clean up extra spaces and return
+    return transcript.replace(/\s+/g, ' ').trim();
+}
+
+// Fetch URL content with http/https
+function fetchURL(url, callback) {
+    const urlObj = new URL(url);
+    const protocol = urlObj.protocol === 'https:' ? https : http;
+
+    const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port,
+        path: urlObj.pathname + urlObj.search,
+        method: 'GET',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9'
+        },
+        timeout: 30000 // 30 second timeout
+    };
+
+    console.log(`Fetching URL: ${url}`);
+
+    const req = protocol.request(options, (res) => {
+        // Handle redirects
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            console.log(`Redirect to: ${res.headers.location}`);
+            const redirectUrl = new URL(res.headers.location, url).href;
+            fetchURL(redirectUrl, callback);
+            return;
+        }
+
+        // Check for error status codes
+        if (res.statusCode !== 200) {
+            callback(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`), null);
+            return;
+        }
+
+        let data = '';
+        res.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        res.on('end', () => {
+            console.log(`Fetched ${data.length} bytes from ${url}`);
+            callback(null, data);
+        });
+    });
+
+    req.on('error', (err) => {
+        callback(new Error(`Network error: ${err.message}`), null);
+    });
+
+    req.on('timeout', () => {
+        req.destroy();
+        callback(new Error('Request timeout after 30 seconds'), null);
+    });
+
+    req.end();
+}
+
+// Detect paywall/auth requirements
+function detectPaywall(html, url) {
+    const paywallIndicators = [
+        'subscribe to continue',
+        'subscription required',
+        'please sign in',
+        'login to continue',
+        'create a free account',
+        'this content is exclusive',
+        'unlock this article',
+        'paywall',
+        'premium content',
+        'members only',
+        'subscriber exclusive'
+    ];
+
+    const lowerHtml = html.toLowerCase();
+
+    for (const indicator of paywallIndicators) {
+        if (lowerHtml.includes(indicator)) {
+            return true;
+        }
+    }
+
+    // Check for specific paywall domains
+    const paywallDomains = ['nytimes.com', 'wsj.com', 'ft.com', 'bloomberg.com'];
+    const urlLower = url.toLowerCase();
+    for (const domain of paywallDomains) {
+        if (urlLower.includes(domain)) {
+            // These sites often have paywalls
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Extract text content from HTML
+function extractTextFromHTML(html, url) {
+    const $ = cheerio.load(html);
+
+    // Check for paywall
+    if (detectPaywall(html, url)) {
+        console.warn(`Potential paywall detected for ${url}`);
+        // Continue anyway, but user will be warned
+    }
+
+    // Remove unwanted elements
+    $('script, style, nav, header, footer, aside, iframe, noscript').remove();
+    $('.advertisement, .ad, .sidebar, .comments, .related-posts').remove();
+    $('[role="navigation"], [role="complementary"]').remove();
+
+    // Try to find main content area (common patterns)
+    let mainContent = $('article').first();
+    if (mainContent.length === 0) {
+        mainContent = $('main').first();
+    }
+    if (mainContent.length === 0) {
+        mainContent = $('.post-content, .article-content, .entry-content, .content').first();
+    }
+    if (mainContent.length === 0) {
+        // Fallback to body
+        mainContent = $('body');
+    }
+
+    // Extract text with basic formatting
+    let text = '';
+
+    mainContent.find('*').each(function() {
+        const elem = $(this);
+        const tagName = this.tagName;
+
+        // Skip if already processed by parent
+        if (elem.parents().filter(function() {
+            return $(this).data('processed');
+        }).length > 0) {
+            return;
+        }
+
+        // Handle headings
+        if (/^h[1-6]$/i.test(tagName)) {
+            text += '\n\n' + elem.text().trim() + '\n';
+        }
+        // Handle paragraphs
+        else if (tagName === 'p') {
+            text += '\n' + elem.text().trim() + '\n';
+        }
+        // Handle lists
+        else if (tagName === 'li') {
+            text += '• ' + elem.text().trim() + '\n';
+        }
+        // Handle blockquotes
+        else if (tagName === 'blockquote') {
+            text += '\n> ' + elem.text().trim() + '\n';
+        }
+        // Handle tables - convert to simple text representation
+        else if (tagName === 'table') {
+            elem.find('tr').each(function() {
+                const row = $(this);
+                const cells = [];
+                row.find('td, th').each(function() {
+                    cells.push($(this).text().trim());
+                });
+                if (cells.length > 0) {
+                    text += cells.join(' | ') + '\n';
+                }
+            });
+            text += '\n';
+        }
+        // Handle code blocks
+        else if (tagName === 'pre' || tagName === 'code') {
+            text += '\n' + elem.text().trim() + '\n';
+        }
+    });
+
+    // If we didn't get much text, fall back to simple text extraction
+    if (text.trim().length < 100) {
+        text = mainContent.text();
+    }
+
+    // Clean up whitespace
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+    return text;
+}
+
+// Process URL with Fabric pattern
+function processURL(pattern, url, strategy, callback) {
+    console.log(`Processing URL: ${url} with pattern: ${pattern}`);
+
+    // Validate URL format
+    try {
+        new URL(url);
+    } catch (err) {
+        callback(new Error('Invalid URL format'), null);
+        return;
+    }
+
+    // Fetch the URL
+    fetchURL(url, (fetchErr, html) => {
+        if (fetchErr) {
+            callback(fetchErr, null);
+            return;
+        }
+
+        try {
+            // Extract text from HTML
+            const text = extractTextFromHTML(html, url);
+
+            if (!text || text.length < 50) {
+                callback(new Error('Could not extract meaningful content from URL'), null);
+                return;
+            }
+
+            // Check for paywall warning
+            if (detectPaywall(html, url)) {
+                console.warn('⚠️ Warning: This content may be behind a paywall');
+                // Could optionally pass this warning back to frontend
+            }
+
+            console.log(`Extracted ${text.length} characters from URL`);
+
+            // Process with Fabric pattern
+            let variables = {};
+            if (pattern === 'write_essay') {
+                variables.author_name = 'George Orwell';
+            }
+
+            processFabric(pattern, text, strategy, callback, variables);
+
+        } catch (parseErr) {
+            callback(new Error(`Error parsing HTML: ${parseErr.message}`), null);
+        }
+    });
 }
 
 // Process YouTube video with yt-dlp directly
@@ -277,7 +613,13 @@ function processYouTube(pattern, youtubeUrl, includeTimestamps, strategy, callba
             console.log(`Transcript fetched (${transcript.length} chars), processing with pattern: ${pattern}`);
 
             // Now process the transcript with the pattern
-            processFabric(pattern, transcript, strategy, callback);
+            // Check if this pattern needs variables
+            let variables = {};
+            if (pattern === 'write_essay') {
+                variables.author_name = 'George Orwell'; // Default author
+            }
+            
+            processFabric(pattern, transcript, strategy, callback, variables);
         });
     });
 }
@@ -327,7 +669,7 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const data = JSON.parse(body);
-                const { message, pattern, strategy, isYouTube, includeTimestamps } = data;
+                const { message, pattern, strategy, isYouTube, isUrl, includeTimestamps } = data;
 
                 if (!pattern || !message) {
                     res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -348,8 +690,27 @@ const server = http.createServer((req, res) => {
                             res.end(output);
                         }
                     });
+                } else if (isUrl) {
+                    console.log(`URL request: pattern=${pattern}, url=${message}, strategy=${strategy || 'auto'}`);
+
+                    processURL(pattern, message, strategy, (error, output) => {
+                        if (error) {
+                            console.error('Error:', error.message);
+                            res.writeHead(500, { 'Content-Type': 'text/plain' });
+                            res.end(`Error: ${error.message}`);
+                        } else {
+                            res.writeHead(200, { 'Content-Type': 'text/plain' });
+                            res.end(output);
+                        }
+                    });
                 } else {
                     console.log(`Text request: pattern=${pattern}, strategy=${strategy || 'auto'}, message length=${message.length}`);
+
+                    // Check if this pattern needs variables
+                    let variables = {};
+                    if (pattern === 'write_essay') {
+                        variables.author_name = 'George Orwell'; // Default author
+                    }
 
                     processFabric(pattern, message, strategy, (error, output) => {
                         if (error) {
@@ -458,7 +819,7 @@ const server = http.createServer((req, res) => {
                         category: aiMetadata.category || 'AI-Processing',
                         source_type: sourceType,
                         fabric_pattern: pattern,
-                        fabric_model: 'glm-4.6',
+                        fabric_model: DISPLAY_MODEL,
                         processed_at: timestamp,
                         tags: tags,
                         keywords: aiMetadata.keywords || [pattern.replace(/_/g, ' ')],
