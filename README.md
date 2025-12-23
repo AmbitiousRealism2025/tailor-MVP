@@ -94,7 +94,7 @@ See [Roadmap.md](Roadmap.md) for comprehensive feature planning including:
 
 ### Technology Stack
 - **Backend:** Node.js with HTTP server
-- **AI Processing:** Fabric CLI with GLM-4.6 model
+- **AI Processing:** Fabric CLI with GLM-4.7 model
 - **Frontend:** Vanilla JavaScript with modern CSS
 - **Storage:** LocalStorage for client-side persistence
 

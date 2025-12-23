@@ -17,6 +17,13 @@ const PORT = 3000;
 const PATTERNS_DIR = path.join(process.env.HOME, '.config/fabric/patterns');
 const OBSIDIAN_VAULT = '/Volumes/Ambitious Realism TB5 2TB/Ambitious Realism';
 
+// GLM-4.7 Coding Plan Configuration (Zhipu AI)
+// Using OpenRouter vendor with GLM model, but overriding API endpoint
+const FABRIC_MODEL = 'OpenRouter|z-ai/glm-4.7'; // Fabric recognizes this model
+const ZHIPU_API_KEY = 'f57581e18df34834b8a091d2eb145f69.gP6KWYFdo5PVKWFm';
+const ZHIPU_API_ENDPOINT = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
+const DISPLAY_MODEL = 'GLM-4.7'; // For display/UI purposes
+
 // Cache for pattern details
 let patternDetailsCache = null;
 let patternsCacheTimestamp = null;
@@ -84,70 +91,104 @@ async function getPatternDetails() {
     return result;
 }
 
-// Process text with Fabric CLI
+// Process text with Zhipu AI GLM-4.7 Coding Plan API (Anthropic-compatible)
 function processFabric(pattern, input, strategy, callback, variables = {}) {
-    // Build arguments for fabric command
-    const args = ['-p', pattern, '--stream'];
+    const patternPath = path.join(PATTERNS_DIR, pattern, 'system.md');
 
-    // Add variables if provided
-    for (const [key, value] of Object.entries(variables)) {
-        args.push('-v', `#${key}=${value}`);
-    }
+    console.log(`DEBUG: Processing with pattern: ${pattern}, input length: ${input.length}`);
 
-    // Note: Strategy support requires running 'fabric --setup' to download strategies
-    // For now, strategies are not used even if provided
-    // TODO: Add strategy support when strategies are configured
-
-    console.log(`DEBUG: Starting Fabric with pattern: ${pattern}, input length: ${input.length}`);
-    console.log(`DEBUG: Variables: ${JSON.stringify(variables)}`);
-    
-    const fabric = spawn('fabric', args, {
-        env: process.env
-    });
-
-    let output = '';
-    let error = '';
-
-    fabric.stdout.on('data', (data) => {
-        const chunk = data.toString();
-        output += chunk;
-        console.log(`DEBUG: Fabric stdout chunk (${chunk.length} chars)`);
-    });
-
-    fabric.stderr.on('data', (data) => {
-        const chunk = data.toString();
-        error += chunk;
-        console.log(`DEBUG: Fabric stderr: ${chunk}`);
-    });
-
-    fabric.on('close', (code) => {
-        console.log(`DEBUG: Fabric exited with code: ${code}`);
-        console.log(`DEBUG: Total output length: ${output.length}`);
-        console.log(`DEBUG: Total error length: ${error.length}`);
-        console.log(`DEBUG: First 500 chars of output: ${output.substring(0, 500)}`);
-        console.log(`DEBUG: First 500 chars of error: ${error.substring(0, 500)}`);
-
-        if (code !== 0) {
-            console.error(`DEBUG: Fabric failed. Error: ${error || 'No error message'}`);
-            callback(new Error(error || `Fabric exited with code ${code}`), null);
-        } else {
-            console.log(`DEBUG: Fabric succeeded`);
-            callback(null, output);
+    // Read the pattern system prompt
+    fs.readFile(patternPath, 'utf8', (err, patternContent) => {
+        if (err) {
+            console.error(`DEBUG: Failed to read pattern: ${err.message}`);
+            return callback(new Error(`Pattern not found: ${pattern}`), null);
         }
-    });
 
-    fabric.on('error', (err) => {
-        console.error(`DEBUG: Fabric process error: ${err.message}`);
-        callback(new Error(`Failed to start Fabric: ${err.message}`), null);
-    });
+        // Extract the system prompt (skip the "IDENTITY and PURPOSE" header line)
+        const lines = patternContent.split('\n');
+        const systemPrompt = lines.slice(1).join('\n').trim();
 
-    // Send input to fabric
-    console.log(`DEBUG: Sending input to Fabric...`);
-    fabric.stdin.write(input);
-    fabric.stdin.end();
+        // Prepare the API request
+        const requestData = JSON.stringify({
+            model: 'glm-4.7',
+            stream: true,
+            max_tokens: 4096,
+            system: systemPrompt,
+            messages: [
+                { role: 'user', content: input }
+            ]
+        });
+
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+                'HTTP-Referer': 'https://tailor-mvp.local',
+                'X-Title': 'Tailor MVP'
+            }
+        };
+
+        console.log(`DEBUG: Sending request to ${ZHIPU_API_ENDPOINT}`);
+
+        const req = https.request(ZHIPU_API_ENDPOINT, options, (res) => {
+            let rawOutput = '';
+
+            console.log(`DEBUG: API response status: ${res.statusCode}`);
+
+            if (res.statusCode !== 200) {
+                let errorData = '';
+                res.on('data', (chunk) => { errorData += chunk; });
+                res.on('end', () => {
+                    console.error(`DEBUG: API error response: ${errorData}`);
+                    callback(new Error(`API returned status ${res.statusCode}: ${errorData}`), null);
+                });
+                return;
+            }
+
+            // Accumulate streaming response
+            res.on('data', (chunk) => {
+                rawOutput += chunk.toString();
+            });
+
+            res.on('end', () => {
+                // Parse SSE format and extract content
+                let parsedContent = '';
+                const lines = rawOutput.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6).trim();
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+                            // Extract content from delta (skip reasoning_content)
+                            if (data.choices && data.choices[0]?.delta?.content) {
+                                parsedContent += data.choices[0].delta.content;
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON lines
+                        }
+                    }
+                }
+
+                console.log(`DEBUG: Request completed, content length: ${parsedContent.length} chars`);
+                callback(null, parsedContent);
+            });
+        });
+
+        req.on('error', (err) => {
+            console.error(`DEBUG: Request error: ${err.message}`);
+            callback(new Error(`API request failed: ${err.message}`), null);
+        });
+
+        // Send the request
+        req.write(requestData);
+        req.end();
+    });
 }
 
-// Extract metadata from content using AI
+// Extract metadata from content using GLM-4.7 Coding Plan API
 function extractMetadata(content, callback) {
     const metadataPrompt = `Analyze the following content and extract comprehensive metadata for optimal semantic search and embedding. Return ONLY valid JSON with this exact structure:
 
@@ -175,25 +216,40 @@ Guidelines:
 Content to analyze:
 ${content}`;
 
-    const fabric = spawn('fabric', ['--stream'], {
-        env: process.env
+    // Prepare the API request
+    const requestData = JSON.stringify({
+        model: 'glm-4.7',
+        stream: false,
+        max_tokens: 2048,
+        messages: [
+            { role: 'user', content: metadataPrompt }
+        ]
     });
 
-    let output = '';
-    let error = '';
+    const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ZHIPU_API_KEY}`,
+            'HTTP-Referer': 'https://tailor-mvp.local',
+            'X-Title': 'Tailor MVP'
+        }
+    };
 
-    fabric.stdout.on('data', (data) => {
-        output += data.toString();
-    });
+    const req = https.request(ZHIPU_API_ENDPOINT, options, (res) => {
+        let output = '';
 
-    fabric.stderr.on('data', (data) => {
-        error += data.toString();
-    });
+        if (res.statusCode !== 200) {
+            let errorData = '';
+            res.on('data', (chunk) => { errorData += chunk; });
+            res.on('end', () => {
+                callback(new Error(`Metadata API returned status ${res.statusCode}: ${errorData}`), null);
+            });
+            return;
+        }
 
-    fabric.on('close', (code) => {
-        if (code !== 0) {
-            callback(new Error(error || `Metadata extraction failed with code ${code}`), null);
-        } else {
+        res.on('data', (chunk) => { output += chunk.toString(); });
+        res.on('end', () => {
             try {
                 // Try to parse JSON from output
                 const jsonMatch = output.match(/\{[\s\S]*\}/);
@@ -206,12 +262,15 @@ ${content}`;
             } catch (parseError) {
                 callback(new Error(`Failed to parse metadata JSON: ${parseError.message}`), null);
             }
-        }
+        });
     });
 
-    // Send prompt to fabric
-    fabric.stdin.write(metadataPrompt);
-    fabric.stdin.end();
+    req.on('error', (err) => {
+        callback(new Error(`Metadata API request failed: ${err.message}`), null);
+    });
+
+    req.write(requestData);
+    req.end();
 }
 
 // Parse VTT subtitle file to extract text
@@ -760,7 +819,7 @@ const server = http.createServer((req, res) => {
                         category: aiMetadata.category || 'AI-Processing',
                         source_type: sourceType,
                         fabric_pattern: pattern,
-                        fabric_model: 'glm-4.6',
+                        fabric_model: DISPLAY_MODEL,
                         processed_at: timestamp,
                         tags: tags,
                         keywords: aiMetadata.keywords || [pattern.replace(/_/g, ' ')],

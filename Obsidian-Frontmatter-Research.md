@@ -63,7 +63,7 @@ tags: [fabric, extract_wisdom, youtube, ai-analysis]
 
 #### 4. Additional Metadata Considerations
 - `processed_at` - Timestamp of when Fabric processed it
-- `model` - AI model used (e.g., "z-ai/glm-4.6")
+- `model` - AI model used (e.g., "z-ai/glm-4.7")
 - `chained_from` - If result of pattern chaining
 - `chain_sequence` - Track pattern chain order
 - `word_count` - Useful for long-form content

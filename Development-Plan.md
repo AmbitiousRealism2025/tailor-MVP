@@ -157,7 +157,7 @@ Add a "💾 Save to Obsidian" button that:
 
 4. **Enhanced metadata:**
    - Track pattern chains (if result of chaining)
-   - Store AI model used (GLM-4.6)
+   - Store AI model used (GLM-4.7)
    - Include strategy used (if not auto)
    - Preserve source information
 

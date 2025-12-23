@@ -273,7 +273,7 @@ type: "fabric-output"
 category: "AI-Processing"
 source_type: "text|youtube|upload"
 fabric_pattern: "pattern_name"
-fabric_model: "glm-4.6"
+fabric_model: "glm-4.7"
 processed_at: "ISO timestamp"
 tags:
   - "fabric"
@@ -339,7 +339,7 @@ const CACHE_TTL = 300000; // 5 minutes
    ↓
 6. Backend: Pipes input to fabric stdin
    ↓
-7. Fabric: Processes with GLM-4.6 model
+7. Fabric: Processes with GLM-4.7 model
    ↓
 8. Backend: Captures stdout output
    ↓

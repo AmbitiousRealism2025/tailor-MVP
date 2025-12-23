@@ -37,7 +37,7 @@ node fabric-proxy.js
 **Web GUI Features:**
 - 📝 **Text Input Mode** - Process any text with 226+ patterns
 - 🎥 **YouTube Mode** - Extract transcripts and process videos
-- ⚡ **Live Processing** - Real-time AI responses with GLM-4.6
+- ⚡ **Live Processing** - Real-time AI responses with GLM-4.7
 - 📋 **Copy Output** - Easy clipboard integration
 - 🎨 **Beautiful UI** - Modern gradient interface
 
@@ -636,7 +636,7 @@ Example: Motivational talks, business advice videos
 **Slow processing**
 - Normal for longer content (>10K words)
 - YouTube videos with auto-captions may be slower
-- GLM-4.6 processes ~500-1000 tokens/sec
+- GLM-4.7 processes ~500-1000 tokens/sec
 - Check proxy server logs for progress
 
 **Server not responding**

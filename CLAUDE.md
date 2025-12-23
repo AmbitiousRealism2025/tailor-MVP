@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **fabric-web-gui.html** - Single-page web interface with pattern selection, input handling (text/YouTube/file upload), and output display
 - **fabric-proxy.js** - Node.js HTTP proxy server that bridges the web UI to the Fabric CLI (bypasses issues with Fabric's built-in REST API)
 
-The system processes content through 226+ AI patterns using the GLM-4.6 model with 9 reasoning strategies.
+The system processes content through 226+ AI patterns using the GLM-4.7 model with 9 reasoning strategies.
 
 ## Architecture
 
